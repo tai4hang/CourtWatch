@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # Server Lint & Test
+      - name: Install server dependencies
+        run: |
+          cd server
+          npm ci
+
+      - name: Lint server code
+        run: |
+          cd server
+          npm run lint
+
+      - name: Run server tests
+        run: |
+          cd server
+          npm run test
+
+      # Mobile Lint
+      - name: Install mobile dependencies
+        run: |
+          cd mobile
+          npm ci
+
+      - name: Lint mobile code
+        run: |
+          cd mobile
+          npm run lint
+
+      # Build Docker image (test only)
+      - name: Build Docker image
+        run: |
+          cd server
+          docker build -t startup-api:test .

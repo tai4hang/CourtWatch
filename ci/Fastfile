@@ -1,0 +1,58 @@
+# Fastlane iOS Configuration
+# Usage: fastlane build_ios
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Build iOS app for TestFlight"
+  lane :build_ios do
+    # Get version from package.json
+    version = JSON.parse(File.read('../mobile/package.json'))['version']
+
+    # Match (fetch certificates and provisioning profiles)
+    match(
+      type: 'appstore',
+      app_identifier: 'com.startup.app',
+      readonly: true
+    )
+
+    # Build the app
+    gym(
+      scheme: 'StartupApp',
+      workspace: '../mobile/ios/StartupApp.xcworkspace',
+      configuration: 'Release',
+      export_method: 'app-store',
+      export_options: {
+        provisioningProfiles: {
+          'com.startup.app' => 'match AppStore com.startup.app'
+        }
+      },
+      build_number: ENV['BUILD_NUMBER'] || Time.now.strftime('%Y%m%d%H%M'),
+      version: version
+    )
+  end
+
+  desc "Upload to TestFlight"
+  lane :upload_testflight do
+    # Import credentials from environment
+    apple_id(ENV['APPLE_ID'])
+    app_identifier('com.startup.app')
+    team_id(ENV['APPLE_TEAM_ID'])
+    itc_team_id(ENV['APPLE_TEAM_ID'])
+
+    # Upload to TestFlight
+    pilot(
+      ipa: '../mobile/ios/build/StartupApp.ipa',
+      skip_submission: false,
+      skip_waiting_for_build_processing: false,
+      distribute_external: true,
+      beta_app_description: 'Test build from GitHub Actions'
+    )
+  end
+
+  desc "Build and upload to TestFlight"
+  lane :release do
+    build_ios
+    upload_testflight
+  end
+end
