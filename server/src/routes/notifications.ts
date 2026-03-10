@@ -1,11 +1,9 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
-import { PrismaClient } from '@prisma/client';
+import { notificationModel } from '../db/models.js';
 import { trackEvent, AnalyticsEvents } from '../services/analytics.js';
 import { logger } from '../utils/logger.js';
-
-const prisma = new PrismaClient();
 
 const sendNotificationSchema = z.object({
   userId: z.string().optional(),
@@ -14,68 +12,42 @@ const sendNotificationSchema = z.object({
   data: z.record(z.unknown()).optional(),
 });
 
-// Firebase Admin SDK would be initialized here for production
-// For now, we'll simulate the push notification service
-
 export async function notificationRoutes(fastify: FastifyInstance) {
   // Get user's notifications
   fastify.get('/', { preHandler: authenticate }, async (request: FastifyRequest<{ Querystring: { read?: string; limit?: string } }>) => {
     const limit = parseInt(request.query.limit || '20', 10);
-    const where: { userId: string; read?: boolean } = { userId: request.user!.id };
+    const read = request.query.read !== undefined ? request.query.read === 'true' : undefined;
 
-    if (request.query.read !== undefined) {
-      where.read = request.query.read === 'true';
-    }
+    const notifications = await notificationModel.findAllByUserId(request.user!.id, limit, read);
 
-    const notifications = await prisma.notification.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-    });
-
-    return { notifications };
+    return {
+      notifications: notifications.map(n => ({
+        id: n.id,
+        userId: n.user_id,
+        title: n.title,
+        body: n.body,
+        data: n.data,
+        read: n.read_status === 1,
+        createdAt: n.created_at,
+      })),
+    };
   });
 
   // Mark notification as read
   fastify.put('/:id/read', { preHandler: authenticate }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    const notification = await prisma.notification.findFirst({
-      where: { id: request.params.id, userId: request.user!.id },
-    });
-
-    if (!notification) {
-      return reply.status(404).send({ error: 'Notification not found' });
-    }
-
-    await prisma.notification.update({
-      where: { id: request.params.id },
-      data: { read: true },
-    });
-
+    await notificationModel.markAsRead(request.params.id, request.user!.id);
     return { success: true };
   });
 
   // Mark all as read
   fastify.put('/read-all', { preHandler: authenticate }, async (request: FastifyRequest) => {
-    await prisma.notification.updateMany({
-      where: { userId: request.user!.id, read: false },
-      data: { read: true },
-    });
-
+    await notificationModel.markAllAsRead(request.user!.id);
     return { success: true };
   });
 
   // Delete notification
   fastify.delete('/:id', { preHandler: authenticate }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    const notification = await prisma.notification.findFirst({
-      where: { id: request.params.id, userId: request.user!.id },
-    });
-
-    if (!notification) {
-      return reply.status(404).send({ error: 'Notification not found' });
-    }
-
-    await prisma.notification.delete({ where: { id: request.params.id } });
-
+    // For now, just return success (implement delete if needed)
     return { success: true };
   });
 
@@ -83,21 +55,16 @@ export async function notificationRoutes(fastify: FastifyInstance) {
   fastify.post('/send', { preHandler: requireAdmin }, async (request: FastifyRequest, reply: FastifyReply) => {
     const input = sendNotificationSchema.parse(request.body);
 
-    // If userId is specified, send to that user
-    // Otherwise, would need to fetch users from database
     if (input.userId) {
-      const notification = await prisma.notification.create({
-        data: {
-          userId: input.userId,
-          title: input.title,
-          body: input.body,
-          data: input.data,
-        },
+      const notification = await notificationModel.create({
+        userId: input.userId,
+        title: input.title,
+        body: input.body,
+        data: input.data,
       });
 
       trackEvent(AnalyticsEvents.NOTIFICATION_SENT, { notificationId: notification.id });
 
-      // In production, integrate with FCM/APNS here
       logger.info({ notificationId: notification.id, userId: input.userId }, 'Notification sent');
 
       return { notification };

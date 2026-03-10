@@ -1,9 +1,7 @@
-import { PrismaClient, User, Session } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../utils/logger.js';
-
-const prisma = new PrismaClient();
+import { userModel, sessionModel, type User } from '../db/models.js';
 
 export interface RegisterInput {
   email: string;
@@ -17,11 +15,11 @@ export interface LoginInput {
 }
 
 export const authService = {
-  async register(input: RegisterInput): Promise<{ user: Omit<User, 'password'>; accessToken: string; refreshToken: string }> {
+  async register(input: RegisterInput): Promise<{ user: Omit<User, 'password_hash'>; accessToken: string; refreshToken: string }> {
     const { email, password, name } = input;
 
     // Check if user exists
-    const existing = await prisma.user.findUnique({ where: { email } });
+    const existing = await userModel.findByEmail(email);
     if (existing) {
       throw new Error('User already exists');
     }
@@ -30,31 +28,27 @@ export const authService = {
     const passwordHash = await bcrypt.hash(password, 12);
 
     // Create user
-    const user = await prisma.user.create({
-      data: {
-        email,
-        name,
-        passwordHash,
-        role: 'user',
-      },
+    const user = await userModel.create({
+      email,
+      name,
+      passwordHash,
     });
 
     // Create tokens
     const accessToken = uuidv4();
     const refreshToken = uuidv4();
 
-    // Create session
-    await prisma.session.create({
-      data: {
-        userId: user.id,
-        refreshToken,
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-      },
+    // Create session (30 days expiry)
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    await sessionModel.create({
+      userId: user.id,
+      refreshToken,
+      expiresAt,
     });
 
     logger.info({ userId: user.id }, 'User registered');
 
-    const { passwordHash: _, ...userWithoutPassword } = user;
+    const { password_hash: _, ...userWithoutPassword } = user;
     return {
       user: userWithoutPassword,
       accessToken,
@@ -62,17 +56,17 @@ export const authService = {
     };
   },
 
-  async login(input: LoginInput): Promise<{ user: Omit<User, 'password'>; accessToken: string; refreshToken: string }> {
+  async login(input: LoginInput): Promise<{ user: Omit<User, 'password_hash'>; accessToken: string; refreshToken: string }> {
     const { email, password } = input;
 
     // Find user
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await userModel.findByEmail(email);
     if (!user) {
       throw new Error('Invalid credentials');
     }
 
     // Verify password
-    const valid = await bcrypt.compare(password, user.passwordHash);
+    const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) {
       throw new Error('Invalid credentials');
     }
@@ -81,18 +75,17 @@ export const authService = {
     const accessToken = uuidv4();
     const refreshToken = uuidv4();
 
-    // Create session
-    await prisma.session.create({
-      data: {
-        userId: user.id,
-        refreshToken,
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      },
+    // Create session (30 days expiry)
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    await sessionModel.create({
+      userId: user.id,
+      refreshToken,
+      expiresAt,
     });
 
     logger.info({ userId: user.id }, 'User logged in');
 
-    const { passwordHash: _, ...userWithoutPassword } = user;
+    const { password_hash: _, ...userWithoutPassword } = user;
     return {
       user: userWithoutPassword,
       accessToken,
@@ -101,29 +94,25 @@ export const authService = {
   },
 
   async refresh(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
-    const session = await prisma.session.findFirst({
-      where: { refreshToken, expiresAt: { gt: new Date() } },
-      include: { user: true },
-    });
+    const session = await sessionModel.findByRefreshToken(refreshToken);
 
     if (!session) {
       throw new Error('Invalid refresh token');
     }
 
     // Delete old session
-    await prisma.session.delete({ where: { id: session.id } });
+    await sessionModel.delete(refreshToken);
 
     // Create new tokens
     const newAccessToken = uuidv4();
     const newRefreshToken = uuidv4();
 
     // Create new session
-    await prisma.session.create({
-      data: {
-        userId: session.userId,
-        refreshToken: newRefreshToken,
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      },
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    await sessionModel.create({
+      userId: session.user_id,
+      refreshToken: newRefreshToken,
+      expiresAt,
     });
 
     return {
@@ -133,20 +122,15 @@ export const authService = {
   },
 
   async logout(refreshToken: string): Promise<void> {
-    await prisma.session.deleteMany({ where: { refreshToken } });
+    await sessionModel.delete(refreshToken);
     logger.info('User logged out');
   },
 
-  async validateAccessToken(accessToken: string): Promise<User | null> {
-    const session = await prisma.session.findFirst({
-      where: { refreshToken: accessToken }, // Using refresh token as access token for simplicity
-      include: { user: true },
-    });
-
-    if (!session || session.expiresAt < new Date()) {
+  async validateRefreshToken(refreshToken: string): Promise<User | null> {
+    const session = await sessionModel.findByRefreshToken(refreshToken);
+    if (!session) {
       return null;
     }
-
     return session.user;
   },
 };

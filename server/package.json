@@ -7,17 +7,13 @@
     "dev": "tsx watch src/main.ts",
     "build": "tsc",
     "start": "node dist/main.js",
-    "db:migrate": "prisma migrate deploy --schema=../database/prisma/schema.prisma",
-    "db:generate": "prisma generate --schema=../database/prisma/schema.prisma",
-    "db:push": "prisma db push --schema=../database/prisma/schema.prisma",
-    "db:seed": "tsx prisma/seed.ts",
+    "db:init": "tsx src/db/init.ts",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@prisma/client": "^5.10.0",
     "fastify": "^4.26.0",
     "@fastify/cors": "^8.5.0",
     "@fastify/helmet": "^11.1.1",
@@ -31,7 +27,8 @@
     "zod": "^3.22.4",
     "uuid": "^9.0.1",
     "pino": "^8.18.0",
-    "pino-pretty": "^11.0.0"
+    "pino-pretty": "^11.0.0",
+    "oracledb": "^6.3.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
@@ -39,7 +36,6 @@
     "@types/uuid": "^9.0.8",
     "typescript": "^5.3.3",
     "tsx": "^4.7.0",
-    "prisma": "^5.10.0",
     "vitest": "^1.2.0",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
@@ -47,8 +43,5 @@
   },
   "engines": {
     "node": ">=20.0.0"
-  },
-  "prisma": {
-    "schema": "../database/prisma/schema.prisma"
   }
 }

@@ -1,88 +1,62 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { authenticate } from '../middleware/auth.js';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { userModel, subscriptionModel } from '../db/models.js';
 
 const updateUserSchema = z.object({
   name: z.string().optional(),
-  avatarUrl: z.string().url().optional(),
+  avatarUrl: z.string().optional(),
 });
 
 export async function userRoutes(fastify: FastifyInstance) {
   // Get current user
   fastify.get('/me', { preHandler: authenticate }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const user = await prisma.user.findUnique({
-      where: { id: request.user!.id },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        avatarUrl: true,
-        role: true,
-        createdAt: true,
-        subscription: {
-          select: {
-            id: true,
-            status: true,
-            plan: true,
-            currentPeriodEnd: true,
-          },
-        },
-      },
-    });
+    const user = await userModel.findById(request.user!.id);
 
     if (!user) {
       return reply.status(404).send({ error: 'User not found' });
     }
 
-    return { user };
+    const subscription = await subscriptionModel.findByUserId(request.user!.id);
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        avatarUrl: user.avatar_url,
+        role: user.role,
+        createdAt: user.created_at,
+      },
+      subscription: subscription ? {
+        id: subscription.id,
+        status: subscription.status,
+        plan: subscription.plan,
+        currentPeriodEnd: subscription.current_period_end,
+      } : null,
+    };
   });
 
   // Update current user
   fastify.put('/me', { preHandler: authenticate }, async (request: FastifyRequest, reply: FastifyReply) => {
     const input = updateUserSchema.parse(request.body);
 
-    const user = await prisma.user.update({
-      where: { id: request.user!.id },
-      data: input,
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        avatarUrl: true,
-        role: true,
-        createdAt: true,
-      },
+    await userModel.update(request.user!.id, {
+      name: input.name,
+      avatarUrl: input.avatarUrl,
     });
 
-    return { user };
-  });
+    const user = await userModel.findById(request.user!.id);
 
-  // Get user by ID (admin only)
-  fastify.get('/:id', { preHandler: authenticate }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    if (request.user?.role !== 'admin') {
-      return reply.status(403).send({ error: 'Forbidden' });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: request.params.id },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        avatarUrl: true,
-        role: true,
-        createdAt: true,
-        subscription: true,
-      },
-    });
-
-    if (!user) {
-      return reply.status(404).send({ error: 'User not found' });
-    }
-
-    return { user };
+    return {
+      user: {
+        id: user!.id,
+        email: user!.email,
+        name: user!.name,
+        avatarUrl: user!.avatar_url,
+        role: user!.role,
+        createdAt: user!.created_at,
+      }
+    };
   });
 }

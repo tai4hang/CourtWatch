@@ -15,10 +15,6 @@ const loginSchema = z.object({
   password: z.string(),
 });
 
-const refreshSchema = z.object({
-  refreshToken: z.string(),
-});
-
 export async function authRoutes(fastify: FastifyInstance) {
   // Register
   fastify.post('/register', async (request: FastifyRequest, reply: FastifyReply) => {

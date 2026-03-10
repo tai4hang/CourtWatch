@@ -1,7 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { getDbConnection } from '../db/connection.js';
 
 export async function healthRoutes(fastify: FastifyInstance) {
   // Basic health check
@@ -20,7 +18,9 @@ export async function healthRoutes(fastify: FastifyInstance) {
     // Database check
     const dbStart = Date.now();
     try {
-      await prisma.$queryRaw`SELECT 1`;
+      const connection = await getDbConnection();
+      await connection.execute('SELECT 1 FROM DUAL');
+      await connection.close();
       checks.database = { status: 'ok', latency: Date.now() - dbStart };
     } catch {
       checks.database = { status: 'error' };

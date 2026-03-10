@@ -1,10 +1,15 @@
 import { buildApp } from './app.js';
 import { logger } from './utils/logger.js';
+import { initDb, closeDb } from './db/connection.js';
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 async function start() {
   try {
+    // Initialize Oracle database connection
+    await initDb();
+    logger.info('Database connected');
+
     const app = await buildApp();
     
     await app.listen({ port: PORT, host: '0.0.0.0' });
@@ -19,6 +24,13 @@ async function start() {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down...');
+  await closeDb();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  logger.info('SIGINT received, shutting down...');
+  await closeDb();
   process.exit(0);
 });
 

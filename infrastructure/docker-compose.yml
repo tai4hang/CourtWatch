@@ -11,7 +11,11 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=${DATABASE_URL}
+      - ORACLE_USER=${ORACLE_USER}
+      - ORACLE_PASSWORD=${ORACLE_PASSWORD}
+      - ORACLE_CONNECT_STRING=${ORACLE_CONNECT_STRING}
+      - ORACLE_WALLET_LOCATION=/app/wallet
+      - ORACLE_WALLET_PASSWORD=${ORACLE_WALLET_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
@@ -21,24 +25,8 @@ services:
       - POSTHOG_HOST=${POSTHOG_HOST}
       - FCM_SERVER_KEY=${FCM_SERVER_KEY}
       - FRONTEND_URL=${FRONTEND_URL}
-    depends_on:
-      - db
-    restart: unless-stopped
-    networks:
-      - app-network
-
-  # PostgreSQL Database
-  db:
-    image: postgres:15-alpine
-    container_name: startup-db
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER:-app}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
-      - POSTGRES_DB=${POSTGRES_DB:-startup}
-    ports:
-      - "5432:5432"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - ./wallet:/app/wallet:ro
     restart: unless-stopped
     networks:
       - app-network
@@ -71,7 +59,6 @@ services:
       - app-network
 
 volumes:
-  postgres-data:
   redis-data:
 
 networks:
