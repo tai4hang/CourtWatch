@@ -35,6 +35,9 @@ COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
 COPY --chown=nodejs:nodejs entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+# Create wallet directory with proper permissions
+RUN mkdir -p /app/wallet && chown nodejs:nodejs /app/wallet
+
 # Set environment
 ENV NODE_ENV=production
 ENV PORT=3000
