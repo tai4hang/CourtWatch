@@ -33,6 +33,7 @@ COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
 # Set environment
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV DB_TYPE=oracle
 # Use Thin mode - no Instant Client needed
 
 # Switch to non-root user
