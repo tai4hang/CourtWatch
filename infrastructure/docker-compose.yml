@@ -43,21 +43,6 @@ services:
     networks:
       - app-network
 
-  # Nginx reverse proxy
-  nginx:
-    image: nginx:alpine
-    container_name: startup-nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - api
-    restart: unless-stopped
-    networks:
-      - app-network
-
 volumes:
   redis-data:
 

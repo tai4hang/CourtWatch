@@ -1,41 +1,57 @@
 import oracledb from 'oracledb';
 import { logger } from '../utils/logger.js';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
 
-// Oracle Cloud connection configuration
-// For Oracle Autonomous DB, use Oracle Cloud infrastructure connections
-// Format: (description=(address=(protocol=tcps)(port=1521)(host=HOST))(connect_data=(service_name=SERVICE)(security=(ssl_server_cert_dn="CN=atp.oraclecloud.com,O=Oracle Coud LLC,L=Redwood City,ST=California,C=US"))))
+// Oracle Cloud AI DB configuration
 
 const dbConfig = {
   user: process.env.ORACLE_USER || 'admin',
   password: process.env.ORACLE_PASSWORD || '',
-  connectString: process.env.ORACLE_CONNECT_STRING || '', // Oracle Cloud ATP connection string
-  walletLocation: process.env.ORACLE_WALLET_LOCATION || './wallet',
-  walletPassword: process.env.ORACLE_WALLET_PASSWORD || '',
-  // For Oracle Cloud ATP with mutual TLS
-  configDir: process.env.ORACLE_WALLET_LOCATION || './wallet',
+  connectString: process.env.ORACLE_CONNECT_STRING || '',
+  walletLocation: process.env.ORACLE_WALLET_LOCATION,
+  walletPassword: process.env.ORACLE_WALLET_PASSWORD,
 };
 
 let pool: oracledb.Pool | null = null;
 
 export async function initDb(): Promise<void> {
   try {
-    // For Oracle Cloud ATP, use thick mode with wallet
-    if (process.env.ORACLE_WALLET_LOCATION) {
-      await oracledb.initOracleClient({ configDir: dbConfig.walletLocation });
+    // Check if we have wallet and Instant Client (for Docker/production)
+    const hasWallet = dbConfig.walletLocation && existsSync(dbConfig.walletLocation);
+    
+    // Try to use Thick mode if wallet exists
+    if (hasWallet) {
+      try {
+        // Initialize Oracle Client for Thick mode (requires Instant Client)
+        await oracledb.initOracleClient({ 
+          configDir: dbConfig.walletLocation 
+        });
+        logger.info('Using Oracle Thick mode (with Instant Client)');
+      } catch (thickError) {
+        logger.warn({ error: thickError }, 'Failed to init Thick mode, trying Thin mode');
+      }
     }
 
-    pool = await oracledb.createPool({
+    const poolConfig: oracledb.PoolAttributes = {
       user: dbConfig.user,
       password: dbConfig.password,
       connectString: dbConfig.connectString,
       poolMin: 2,
       poolMax: 10,
       poolIncrement: 2,
-    });
+    };
 
+    // Add wallet config if available (for Oracle Cloud ATP)
+    if (hasWallet && dbConfig.walletPassword) {
+      poolConfig.walletDirectory = dbConfig.walletLocation;
+      poolConfig.walletPassword = dbConfig.walletPassword;
+    }
+
+    pool = await oracledb.createPool(poolConfig);
     logger.info('Oracle database pool created');
-  } catch (error) {
-    logger.error({ error }, 'Failed to initialize Oracle database');
+  } catch (error: any) {
+    logger.error({ error: error.message, code: error.code }, 'Failed to initialize Oracle database');
     throw error;
   }
 }
