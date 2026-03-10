@@ -11,11 +11,12 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - ORACLE_USER=${ORACLE_USER}
-      - ORACLE_PASSWORD=${ORACLE_PASSWORD}
-      - ORACLE_CONNECT_STRING=${ORACLE_CONNECT_STRING}
-      - ORACLE_WALLET_LOCATION=/app/wallet
-      - ORACLE_WALLET_PASSWORD=${ORACLE_WALLET_PASSWORD}
+      - DB_TYPE=oracle
+      - PAR_URL=https://objectstorage.us-ashburn-1.oraclecloud.com/p/h7c9OmsOy_f2rvLhXHvK_gVjmTNlzEZRbYaq30whtlXM-dRu0Lj4JgCscsR0Yv0X/n/idvt8mwxkdbc/b/db-wallets/o/Wallet_UB3AK3MTVBQJS41L.zip
+      - OCI_SECRET_ORACLE_USER=${OCI_SECRET_ORACLE_USER}
+      - OCI_SECRET_ORACLE_PASSWORD=${OCI_SECRET_ORACLE_PASSWORD}
+      - OCI_SECRET_ORACLE_CONNECT_STRING=${OCI_SECRET_ORACLE_CONNECT_STRING}
+      - OCI_SECRET_ORACLE_WALLET_PASSWORD=${OCI_SECRET_ORACLE_WALLET_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
@@ -25,8 +26,6 @@ services:
       - POSTHOG_HOST=${POSTHOG_HOST}
       - FCM_SERVER_KEY=${FCM_SERVER_KEY}
       - FRONTEND_URL=${FRONTEND_URL}
-    volumes:
-      - ./wallet:/app/wallet:ro
     restart: unless-stopped
     networks:
       - app-network
