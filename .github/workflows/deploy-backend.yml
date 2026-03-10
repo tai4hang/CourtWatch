@@ -35,6 +35,6 @@ jobs:
         with:
           context: ./server
           push: true
-          tags: ghcr.io/${{ github.repository }}/startup-api:latest
+          tags: ghcr.io/${{ github.repository_owner }}/startup-api:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
