@@ -1,195 +1,179 @@
-# Project Overview
+# FamilyShopping - Startup Platform
 
-This is a production-ready startup platform with cross-platform mobile apps, backend API, and automated deployments.
+A production-ready full-stack startup platform with mobile app, backend API, database, and automated CI/CD deployments to TestFlight.
 
 ## Architecture
 
 ```
 /FamilyShopping
 ├── mobile/              # React Native mobile app (iOS + Android)
-├── server/              # Node.js backend API
-├── database/           # Prisma ORM + Oracle AI DB
-├── infrastructure/     # Docker & Kubernetes configs
-├── ci/                 # Fastlane configurations
-└── .github/workflows/  # CI/CD pipelines
+├── server/              # Node.js backend API (Fastify)
+├── infrastructure/      # Docker configs, Oracle wallet setup
+├── ci/                  # Fastlane configurations
+└── .github/workflows/  # CI/CD pipelines (GitHub Actions)
 ```
 
 ## Tech Stack
 
 - **Mobile**: React Native, TypeScript, Expo, React Navigation, Zustand
-- **Database**: Node.js, Fastify, Oracle AI DB (oracledb driver)
+- **Backend**: Node.js, Fastify, Oracle AI DB (oracledb driver)
+- **Database**: Oracle Cloud AI DB (Autonomous Transaction Processing)
 - **Payments**: Stripe Subscriptions
 - **Notifications**: FCM (Android), APNS (iOS)
 - **Analytics**: PostHog
 - **CI/CD**: GitHub Actions, Fastlane, EAS
 
-## Quick Start
-
-### Prerequisites
-- Node.js 20+
-- Docker & Docker Compose
-- Oracle Cloud account
-- Apple Developer account (with App Store Connect API key)
-- Google Play Console account
-- Stripe account
-- Expo account (eas CLI)
-
 ---
 
 # Deployment Guide
 
-This guide covers deploying each layer of the application.
+This guide covers deploying to testing/production environments.
 
-## Table of Contents
-1. [Database (Oracle AI DB)](#1-database-oracle-ai-db)
-2. [Backend API](#2-backend-api)
-3. [Mobile App (iOS TestFlight)](#3-mobile-app-ios-testflight)
-4. [GitHub Actions CI/CD](#4-github-actions-cicd)
+## Prerequisites
 
----
-
-## 1. Database (Oracle Cloud AI DB)
-
-### Oracle Cloud ATP Setup
-
-1. **Create Oracle Cloud Account**: https://cloud.oracle.com/
-
-2. **Provision Autonomous Database**:
-   - Go to Oracle Cloud Console → Database → Autonomous Transaction Processing
-   - Create with **Always Free** option
-   - Download the wallet (ZIP file)
-   - Note the connection string from tnsnames.ora
-
-3. **Configure Environment**:
-   ```bash
-   # Extract wallet to infrastructure/wallet/
-   cp wallet.zip infrastructure/wallet.zip
-   cd infrastructure
-   unzip wallet.zip
-   
-   # Update .env with your Oracle credentials
-   cp .env.example .env
-   # Edit .env with:
-   ORACLE_USER=admin
-   ORACLE_PASSWORD=your_password
-   ORACLE_CONNECT_STRING=your_connection_string (from tnsnames.ora)
-   ORACLE_WALLET_PASSWORD=your_wallet_password
-   ```
-
-4. **Initialize Database**:
-   ```bash
-   cd server
-   npm install
-   npm run db:init
-   ```
-
-### Local Development (Docker)
-
-Not recommended - use Oracle Cloud Free Tier for development.
+- [ ] Oracle Cloud account (Free Tier)
+- [ ] Apple Developer account
+- [ ] Expo account
+- [ ] Stripe account
+- [ ] GitHub repository access
 
 ---
 
-## 2. Backend API
+## 1. Oracle Cloud AI DB Setup
 
-### Deploy to Oracle Cloud Container Instance
+### Create Autonomous Database
 
-1. **Build Docker Image**:
+1. **Login to Oracle Cloud**: https://cloud.oracle.com/
+2. Go to **Oracle Database** → **Autonomous Transaction Processing**
+3. Click **Create Autonomous Database**
+4. Select **Always Free** (recommended for testing)
+5. Configure:
+   - Display name: `FamilyShopping`
+   - Database name: `familyshopping`
+   - Admin password: `YourSecurePassword123!`
+6. Click **Create** and wait for provisioning (~5 min)
+
+### Download Wallet
+
+1. Go to your ATP instance → **DB Connection**
+2. Download **Wallet** (ZIP file)
+3. Extract to `infrastructure/wallet/`
+4. Note the connection string from `tnsnames.ora` (use the medium priority one)
+
+### Get Connection Details
+
+From `tnsnames.ora`, find your connection string:
+```text
+medium = (description=(address=(protocol=tcps)(port=1522)(host=...))(connect_data=(service_name=...)))
+```
+
+---
+
+## 2. Backend Deployment
+
+### Option A: Oracle Cloud Container Instance (Recommended)
+
+1. **Build Docker image**:
    ```bash
    cd server
-   docker build -t your-registry/startup-api:latest .
+   docker build -t familyshopping-api:latest .
    ```
 
-2. **Push to Container Registry**:
+2. **Push to Oracle Container Registry** or Docker Hub:
    ```bash
-   docker push your-registry/startup-api:latest
+   docker tag familyshopping-api:latest your-registry/familyshopping-api:latest
+   docker push your-registry/familyshopping-api:latest
    ```
 
-3. **Deploy via Oracle Cloud**:
-   - Use Oracle Cloud Container Instances
-   - Or use kubectl with OKE (Oracle Kubernetes Engine)
+3. **Deploy via Oracle Cloud Container Instances**:
+   - Go to Oracle Cloud → Containers → Container Instances
+   - Create new instance
+   - Configure:
+     - Image: your-registry/familyshopping-api:latest
+     - Environment variables (see below)
+     - Volume mount: wallet files
 
-### Using Docker Compose (Local/Production)
+### Option B: Docker Compose (Local Testing)
 
 ```bash
 cd infrastructure
+
+# Create .env file
 cp .env.example .env
-# Edit .env with your values
+# Edit with your Oracle credentials
+
+# Place Oracle wallet in infrastructure/wallet/
+
+# Run
 docker-compose up -d api
 ```
 
-### Environment Variables Required
+### Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `ORACLE_USER` | Oracle DB username |
-| `ORACLE_PASSWORD` | Oracle DB password |
-| `ORACLE_CONNECT_STRING` | Connection string from tnsnames.ora |
-| `ORACLE_WALLET_LOCATION` | Path to Oracle wallet directory |
-| `ORACLE_WALLET_PASSWORD` | Wallet password |
-| `JWT_SECRET` | Secret for JWT tokens |
-| `STRIPE_SECRET_KEY` | Stripe API key |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook secret |
-| `POSTHOG_API_KEY` | PostHog analytics key |
-| `FCM_SERVER_KEY` | Firebase Cloud Messaging key |
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `DB_TYPE` | Database type | `oracle` |
+| `ORACLE_USER` | DB username | `admin` |
+| `ORACLE_PASSWORD` | DB password | `YourSecurePassword123!` |
+| `ORACLE_CONNECT_STRING` | Connection string | `medium_dbname` |
+| `ORACLE_WALLET_LOCATION` | Wallet path | `./wallet` |
+| `ORACLE_WALLET_PASSWORD` | Wallet password | `YourWalletPassword` |
+| `JWT_SECRET` | JWT signing secret | `generate-secure-random-string` |
+| `STRIPE_SECRET_KEY` | Stripe API key | `sk_live_...` |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook | `whsec_...` |
+| `FRONTEND_URL` | Mobile app URL | `https://your-app.expo.app` |
 
 ---
 
-## 3. Mobile App (iOS TestFlight)
+## 3. Mobile App - TestFlight Deployment
 
 ### Prerequisites
 
 1. **Apple Developer Account**: https://developer.apple.com/
-2. **App Store Connect API Key**: Created in App Store Connect
+2. **App Store Connect API Key**:
+   - Go to App Store Connect → Users and Access → Keys
+   - Create API Key with "App Manager" role
+   - Download .p8 file
+
 3. **Expo Account**: https://expo.dev/
 
-### Step 1: Configure EAS Build
+### Configure App
 
-```bash
-# Install EAS CLI
-npm install -g eas-cli
-
-# Login to Expo
-eas login
-
-# Configure project
-cd mobile
-eas project:init
-```
-
-### Step 2: Configure app.json
-
-Update `app.json` with your Apple Team ID:
+Update `mobile/app.json`:
 ```json
 {
   "expo": {
+    "name": "FamilyShopping",
     "ios": {
-      "appleTeamId": "YOUR_TEAM_ID",
-      "bundleIdentifier": "com.yourapp.bundleid"
+      "bundleIdentifier": "com.startup.familyshopping",
+      "appleTeamId": "YOUR_TEAM_ID"
+    },
+    "android": {
+      "package": "com.startup.familyshopping"
     }
   }
 }
 ```
 
-### Step 3: Build for iOS TestFlight
+### Build & Submit via EAS
 
 ```bash
-# Build for iOS (creates .ipa for TestFlight)
+cd mobile
+
+# Install dependencies
+npm install
+
+# Login to Expo
+eas login
+
+# Build for iOS (TestFlight)
 eas build -p ios --profile preview
 
-# Or build locally
-npx expo run:ios --configuration Release
-```
-
-### Step 4: Submit to TestFlight
-
-```bash
 # Submit to TestFlight
 eas submit -p ios
-
-# Or use Fastlane (see ci/ folder)
 ```
 
-### Manual Fastlane Build (Alternative)
+### Build & Submit via Fastlane (Alternative)
 
 ```bash
 cd mobile
@@ -197,10 +181,11 @@ cd mobile
 # Install Fastlane
 sudo gem install fastlane
 
-# Setup (one time)
-fastlane init
+# Configure in ci/ folder
+# Update ci/Fastfile with your credentials
 
-# Build and upload to TestFlight
+# Build and upload
+cd ci
 fastlane build_ios
 fastlane upload_testflight
 ```
@@ -209,97 +194,120 @@ fastlane upload_testflight
 
 ## 4. GitHub Actions CI/CD
 
-The repository includes automated CI/CD pipelines in `.github/workflows/`.
+The repository includes automated pipelines in `.github/workflows/`.
 
-### Workflow Files
+### Workflows
 
-| File | Description |
-|------|-------------|
-| `ci.yml` | CI pipeline (lint, test, build) |
-| `deploy-backend.yml` | Backend Docker build & deploy |
-| `deploy-mobile.yml` | Mobile build & TestFlight upload |
+| File | Trigger | Description |
+|------|---------|-------------|
+| `ci.yml` | Push/PR | Lint, TypeScript check |
+| `deploy-backend.yml` | Push to `server/` | Build & push Docker image |
+| `deploy-mobile.yml` | Push to `mobile/` | Build iOS & submit to TestFlight |
 
-### Required Secrets
+### Configure GitHub Secrets
 
-Configure these in GitHub Settings → Secrets and variables → Actions:
+Go to **GitHub → Settings → Secrets and variables → Actions**
+
+Add these secrets:
 
 | Secret | Description |
 |--------|-------------|
 | `DOCKER_USERNAME` | Docker Hub username |
 | `DOCKER_PASSWORD` | Docker Hub password |
-| `ORACLE_DB_URL` | Oracle DB connection string |
-| `JWT_SECRET` | JWT secret |
-| `STRIPE_SECRET_KEY` | Stripe key |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook |
-| `POSTHOG_API_KEY` | PostHog key |
 | `EXPO_TOKEN` | Expo access token |
 | `APPLE_ID` | Apple ID email |
 | `APPLE_APP_SPECIFIC_PASSWORD` | App-specific password |
 | `APPLE_TEAM_ID` | Apple Team ID |
 | `FASTLANE_PASSWORD` | Fastlane password |
+| `ORACLE_USER` | Oracle DB user |
+| `ORACLE_PASSWORD` | Oracle DB password |
+| `ORACLE_CONNECT_STRING` | Connection string |
+| `ORACLE_WALLET_PASSWORD` | Wallet password |
+| `JWT_SECRET` | JWT secret |
+| `STRIPE_SECRET_KEY` | Stripe key |
 
-### Getting Expo Token
+### Get Expo Token
 
 1. Go to https://expo.dev/settings/access-tokens
 2. Create new access token
-3. Add as `EXPO_TOKEN` secret in GitHub
+3. Copy and add as `EXPO_TOKEN` secret
 
-### Getting Apple App-Specific Password
+### Get Apple App-Specific Password
 
 1. Go to https://appleid.apple.com/
 2. Sign in → Security → App-Specific Passwords
 3. Generate new password
-4. Use with your Apple ID in GitHub secrets
 
-### Pipeline Triggers
+### Trigger Deployment
 
-| Trigger | Action |
-|---------|--------|
-| Push to `main` | Full CI + Deploy backend + Build mobile |
-| PR to `main` | CI only (lint + test) |
-| Tag `v*` | Release build + auto-submit to TestFlight |
+Push to main branch:
+```bash
+git push origin main
+```
 
-### Running the Pipeline
-
-1. **Push code to main branch**:
-   ```bash
-   git push origin main
-   ```
-
-2. **Check GitHub Actions**: 
-   - Go to https://github.com/tai4hang/Family-Shopping/actions
-   - Monitor build progress
-
-3. **View TestFlight**:
-   - After successful build, check App Store Connect
-   - Build appears in TestFlight → Builds
+Monitor at: https://github.com/tai4hang/Family-Shopping/actions
 
 ---
 
 ## Quick Deploy Checklist
 
-- [ ] Oracle Cloud DB provisioned
-- [ ] Apple Developer account ready
+- [ ] Oracle Cloud ATP provisioned + wallet downloaded
+- [ ] Apple Developer account with App Store Connect API key
 - [ ] Expo account created
 - [ ] GitHub secrets configured
-- [ ] First push to main triggers pipeline
-- [ ] TestFlight build available (~15-20 min)
+- [ ] Push code to main branch
+- [ ] Wait for GitHub Actions (~15-20 min)
+- [ ] Check TestFlight for build
 
 ---
 
 ## Troubleshooting
 
-### Build Failures
+### GitHub Actions Failures
 
-1. **iOS Build Fails**: Check Apple Developer certificates
-2. **Backend Build Fails**: Check Docker configuration
-3. **Expo Build Fails**: Verify EXPO_TOKEN is valid
+| Error | Solution |
+|-------|----------|
+| `EXPO_TOKEN` invalid | Regenerate at expo.dev/settings/access-tokens |
+| Apple auth failed | Check APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD |
+| iOS build timeout | Increase timeout in workflow or use EAS build |
 
-### Common Issues
+### Backend Deployment
 
-- **Missing secrets**: Ensure all required secrets are set
-- **Certificate expired**: Regenerate Apple certificates
-- **Database connection**: Verify Oracle wallet path
+| Error | Solution |
+|-------|----------|
+| Oracle connection failed | Verify wallet + credentials in .env |
+| Wallet not found | Ensure wallet mounted at correct path |
+
+---
+
+## Project Structure
+
+```
+FamilyShopping/
+├── .github/workflows/     # CI/CD pipelines
+│   ├── ci.yml            # Lint & test
+│   ├── deploy-backend.yml # Backend Docker build
+│   └── deploy-mobile.yml # iOS TestFlight build
+├── ci/                   # Fastlane configs
+│   ├── Fastfile
+│   └── Appfile
+├── infrastructure/        # Deployment configs
+│   ├── docker-compose.yml
+│   ├── .env.example
+│   └── nginx.conf
+├── mobile/               # React Native app
+│   ├── app.json
+│   ├── src/
+│   └── package.json
+└── server/               # Backend API
+    ├── src/
+    │   ├── db/          # Database connection
+    │   ├── routes/      # API endpoints
+    │   ├── services/    # Business logic
+    │   └── main.ts      # Entry point
+    ├── Dockerfile
+    └── package.json
+```
 
 ---
 
