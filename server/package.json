@@ -7,9 +7,9 @@
     "dev": "tsx watch src/main.ts",
     "build": "tsc",
     "start": "node dist/main.js",
-    "db:migrate": "prisma migrate deploy",
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate deploy --schema=../database/prisma/schema.prisma",
+    "db:generate": "prisma generate --schema=../database/prisma/schema.prisma",
+    "db:push": "prisma db push --schema=../database/prisma/schema.prisma",
     "db:seed": "tsx prisma/seed.ts",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
@@ -47,5 +47,8 @@
   },
   "engines": {
     "node": ">=20.0.0"
+  },
+  "prisma": {
+    "schema": "../database/prisma/schema.prisma"
   }
 }
