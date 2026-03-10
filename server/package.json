@@ -28,7 +28,8 @@
     "uuid": "^9.0.1",
     "pino": "^8.18.0",
     "pino-pretty": "^11.0.0",
-    "oracledb": "^6.3.0"
+    "oracledb": "^6.3.0",
+    "better-sqlite3": "^9.4.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

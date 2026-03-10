@@ -1,29 +1,35 @@
-import oracledb from 'oracledb';
 import { logger } from '../utils/logger.js';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
-// Oracle Cloud AI DB configuration
+// Database type configuration
+type DbType = 'oracle' | 'sqlite';
 
-const dbConfig = {
-  user: process.env.ORACLE_USER || 'admin',
-  password: process.env.ORACLE_PASSWORD || '',
-  connectString: process.env.ORACLE_CONNECT_STRING || '',
-  walletLocation: process.env.ORACLE_WALLET_LOCATION,
-  walletPassword: process.env.ORACLE_WALLET_PASSWORD,
-};
+const DB_TYPE = (process.env.DB_TYPE as DbType) || 'sqlite';
 
-let pool: oracledb.Pool | null = null;
+// SQLite imports (only import if using SQLite)
+let sqlite3: any = null;
+let sqliteDb: any = null;
 
-export async function initDb(): Promise<void> {
+// Oracle imports
+let oracledb: any = null;
+
+async function initOracle() {
+  oracledb = (await import('oracledb')).default;
+
+  const dbConfig = {
+    user: process.env.ORACLE_USER || 'admin',
+    password: process.env.ORACLE_PASSWORD || '',
+    connectString: process.env.ORACLE_CONNECT_STRING || '',
+    walletLocation: process.env.ORACLE_WALLET_LOCATION,
+    walletPassword: process.env.ORACLE_WALLET_PASSWORD,
+  };
+
   try {
-    // Check if we have wallet and Instant Client (for Docker/production)
     const hasWallet = dbConfig.walletLocation && existsSync(dbConfig.walletLocation);
     
-    // Try to use Thick mode if wallet exists
     if (hasWallet) {
       try {
-        // Initialize Oracle Client for Thick mode (requires Instant Client)
         await oracledb.initOracleClient({ 
           configDir: dbConfig.walletLocation 
         });
@@ -33,7 +39,7 @@ export async function initDb(): Promise<void> {
       }
     }
 
-    const poolConfig: oracledb.PoolAttributes = {
+    const poolConfig: any = {
       user: dbConfig.user,
       password: dbConfig.password,
       connectString: dbConfig.connectString,
@@ -42,32 +48,173 @@ export async function initDb(): Promise<void> {
       poolIncrement: 2,
     };
 
-    // Add wallet config if available (for Oracle Cloud ATP)
     if (hasWallet && dbConfig.walletPassword) {
       poolConfig.walletDirectory = dbConfig.walletLocation;
       poolConfig.walletPassword = dbConfig.walletPassword;
     }
 
-    pool = await oracledb.createPool(poolConfig);
+    const pool = await oracledb.createPool(poolConfig);
     logger.info('Oracle database pool created');
+    return pool;
   } catch (error: any) {
     logger.error({ error: error.message, code: error.code }, 'Failed to initialize Oracle database');
     throw error;
   }
 }
 
-export async function getDbConnection(): Promise<oracledb.Connection> {
+async function initSqlite() {
+  try {
+    const Database = require('better-sqlite3');
+    const dbPath = process.env.SQLITE_PATH || './data/dev.db');
+    
+    // Ensure directory exists
+    const fs = require('fs');
+    const dir = require('path').dirname(dbPath);
+    if (!existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    sqliteDb = new Database(dbPath);
+    sqliteDb.pragma('journal_mode = WAL');
+    
+    // Initialize schema
+    initializeSqliteSchema();
+    
+    logger.info('SQLite database initialized');
+    return sqliteDb;
+  } catch (error: any) {
+    logger.error({ error: error.message }, 'Failed to initialize SQLite database');
+    throw error;
+  }
+}
+
+function initializeSqliteSchema() {
+  const schema = `
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      name TEXT,
+      password_hash TEXT NOT NULL,
+      avatar_url TEXT,
+      role TEXT DEFAULT 'USER' CHECK (role IN ('USER', 'ADMIN')),
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      refresh_token TEXT UNIQUE NOT NULL,
+      expires_at TEXT NOT NULL,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS items (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      metadata TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS subscriptions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT UNIQUE NOT NULL,
+      stripe_subscription_id TEXT UNIQUE,
+      stripe_customer_id TEXT,
+      status TEXT DEFAULT 'TRIALING' CHECK (status IN ('TRIALING', 'ACTIVE', 'PAST_DUE', 'CANCELLED', 'UNPAID')),
+      plan TEXT DEFAULT 'monthly',
+      current_period_start TEXT,
+      current_period_end TEXT,
+      cancelled_at TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS payments (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      subscription_id TEXT,
+      stripe_payment_id TEXT UNIQUE NOT NULL,
+      amount INTEGER NOT NULL,
+      currency TEXT DEFAULT 'usd',
+      status TEXT DEFAULT 'pending',
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS notifications (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      data TEXT,
+      read_status INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS activity_logs (
+      id TEXT PRIMARY KEY,
+      user_id TEXT,
+      action TEXT NOT NULL,
+      entity_type TEXT,
+      entity_id TEXT,
+      metadata TEXT,
+      ip_address TEXT,
+      user_agent TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
+    CREATE INDEX IF NOT EXISTS idx_items_user_id ON items(user_id);
+    CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, read_status);
+    CREATE INDEX IF NOT EXISTS idx_activity_logs_user_id ON activity_logs(user_id);
+  `;
+
+  sqliteDb.exec(schema);
+}
+
+// Connection pool/storage
+let pool: any = null;
+
+export async function initDb(): Promise<void> {
+  logger.info(`Initializing ${DB_TYPE} database...`);
+  
+  if (DB_TYPE === 'oracle') {
+    pool = await initOracle();
+  } else {
+    pool = await initSqlite();
+  }
+}
+
+export async function getDbConnection(): Promise<any> {
   if (!pool) {
     await initDb();
   }
-  return pool!.getConnection();
+  
+  if (DB_TYPE === 'oracle') {
+    return pool.getConnection();
+  } else {
+    return pool;
+  }
 }
 
 export async function closeDb(): Promise<void> {
   if (pool) {
-    await pool.close(0);
+    if (DB_TYPE === 'oracle') {
+      await pool.close(0);
+    } else {
+      pool.close();
+    }
     pool = null;
-    logger.info('Oracle database pool closed');
+    logger.info('Database connection closed');
   }
 }
 
@@ -77,13 +224,23 @@ export async function execute<T = any>(
   params: any[] = []
 ): Promise<T[]> {
   const connection = await getDbConnection();
+  
   try {
-    const result = await connection.execute(sql, params, {
-      outFormat: oracledb.OUT_FORMAT_OBJECT,
-    });
-    return (result.rows || []) as T[];
+    if (DB_TYPE === 'oracle') {
+      const result = await connection.execute(sql, params, {
+        outFormat: (require('oracledb') as any).OUT_FORMAT_OBJECT,
+      });
+      return (result.rows || []) as T[];
+    } else {
+      // SQLite
+      const stmt = connection.prepare(sql);
+      const rows = params.length > 0 ? stmt.all(...params) : stmt.all();
+      return rows as T[];
+    }
   } finally {
-    await connection.close();
+    if (DB_TYPE === 'oracle') {
+      await connection.close();
+    }
   }
 }
 
@@ -102,15 +259,27 @@ export async function run(
   params: any[] = []
 ): Promise<{ rowsAffected: number; lastRowId?: string }> {
   const connection = await getDbConnection();
+  
   try {
-    const result = await connection.execute(sql, params, {
-      autoCommit: true,
-    });
-    return {
-      rowsAffected: result.rowsAffected || 0,
-      lastRowId: result.lastRowid?.toString(),
-    };
+    if (DB_TYPE === 'oracle') {
+      const result = await connection.execute(sql, params, {
+        autoCommit: true,
+      });
+      return {
+        rowsAffected: result.rowsAffected || 0,
+        lastRowId: result.lastRowid?.toString(),
+      };
+    } else {
+      // SQLite
+      const stmt = connection.prepare(sql);
+      const result = params.length > 0 ? stmt.run(...params) : stmt.run();
+      return {
+        rowsAffected: result.changes,
+      };
+    }
   } finally {
-    await connection.close();
+    if (DB_TYPE === 'oracle') {
+      await connection.close();
+    }
   }
 }
