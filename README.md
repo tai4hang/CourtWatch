@@ -17,7 +17,7 @@ This is a production-ready startup platform with cross-platform mobile apps, bac
 ## Tech Stack
 
 - **Mobile**: React Native, TypeScript, Expo, React Navigation, Zustand
-- **Backend**: Node.js, Fastify, Prisma, Oracle AI DB
+- **Database**: Node.js, Fastify, Oracle AI DB (oracledb driver)
 - **Payments**: Stripe Subscriptions
 - **Notifications**: FCM (Android), APNS (iOS)
 - **Analytics**: PostHog
@@ -48,39 +48,44 @@ This guide covers deploying each layer of the application.
 
 ---
 
-## 1. Database (Oracle AI DB)
+## 1. Database (Oracle Cloud AI DB)
 
-### Option A: Oracle Cloud Free Tier
+### Oracle Cloud ATP Setup
 
 1. **Create Oracle Cloud Account**: https://cloud.oracle.com/
 
 2. **Provision Autonomous Database**:
    - Go to Oracle Cloud Console → Database → Autonomous Transaction Processing
    - Create with **Always Free** option
-   - Note the connection string (wallet)
+   - Download the wallet (ZIP file)
+   - Note the connection string from tnsnames.ora
 
-3. **Configure Prisma**:
+3. **Configure Environment**:
    ```bash
-   cd database
-   # Download Oracle wallet and extract to ./wallet/
-   # Update DATABASE_URL in your .env:
-   DATABASE_URL="oracle://user:password@atp_connection_string/PDB1?wallet_location=./wallet"
+   # Extract wallet to infrastructure/wallet/
+   cp wallet.zip infrastructure/wallet.zip
+   cd infrastructure
+   unzip wallet.zip
+   
+   # Update .env with your Oracle credentials
+   cp .env.example .env
+   # Edit .env with:
+   ORACLE_USER=admin
+   ORACLE_PASSWORD=your_password
+   ORACLE_CONNECT_STRING=your_connection_string (from tnsnames.ora)
+   ORACLE_WALLET_PASSWORD=your_wallet_password
    ```
 
-4. **Run Migrations**:
+4. **Initialize Database**:
    ```bash
    cd server
    npm install
-   npm run db:generate
-   npm run db:migrate
+   npm run db:init
    ```
 
-### Option B: Local Development with Docker
+### Local Development (Docker)
 
-```bash
-cd infrastructure
-docker-compose up -d oracle-db
-```
+Not recommended - use Oracle Cloud Free Tier for development.
 
 ---
 
@@ -116,7 +121,11 @@ docker-compose up -d api
 
 | Variable | Description |
 |----------|-------------|
-| `DATABASE_URL` | Oracle DB connection string |
+| `ORACLE_USER` | Oracle DB username |
+| `ORACLE_PASSWORD` | Oracle DB password |
+| `ORACLE_CONNECT_STRING` | Connection string from tnsnames.ora |
+| `ORACLE_WALLET_LOCATION` | Path to Oracle wallet directory |
+| `ORACLE_WALLET_PASSWORD` | Wallet password |
 | `JWT_SECRET` | Secret for JWT tokens |
 | `STRIPE_SECRET_KEY` | Stripe API key |
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook secret |
