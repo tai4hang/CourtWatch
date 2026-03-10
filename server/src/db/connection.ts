@@ -55,6 +55,10 @@ async function initOracle() {
 
     const pool = await oracledb.createPool(poolConfig);
     logger.info('Oracle database pool created');
+    
+    // Initialize schema (create tables if not exist)
+    await initializeOracleSchema(pool);
+    
     return pool;
   } catch (error: any) {
     logger.error({ error: error.message, code: error.code }, 'Failed to initialize Oracle database');
@@ -85,6 +89,108 @@ async function initSqlite() {
   } catch (error: any) {
     logger.error({ error: error.message }, 'Failed to initialize SQLite database');
     throw error;
+  }
+}
+
+async function initializeOracleSchema(pool: any) {
+  const schemaStatements = [
+    `CREATE TABLE IF NOT EXISTS users (
+      id VARCHAR2(255) PRIMARY KEY,
+      email VARCHAR2(255) UNIQUE NOT NULL,
+      name VARCHAR2(255),
+      password_hash VARCHAR2(255) NOT NULL,
+      avatar_url VARCHAR2(500),
+      role VARCHAR2(20) DEFAULT 'USER' CHECK (role IN ('USER', 'ADMIN')),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS sessions (
+      id VARCHAR2(255) PRIMARY KEY,
+      user_id VARCHAR2(255) NOT NULL,
+      refresh_token VARCHAR2(500) UNIQUE NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`,
+    `CREATE TABLE IF NOT EXISTS items (
+      id VARCHAR2(255) PRIMARY KEY,
+      user_id VARCHAR2(255) NOT NULL,
+      title VARCHAR2(500) NOT NULL,
+      description CLOB,
+      metadata CLOB,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`,
+    `CREATE TABLE IF NOT EXISTS subscriptions (
+      id VARCHAR2(255) PRIMARY KEY,
+      user_id VARCHAR2(255) UNIQUE NOT NULL,
+      stripe_subscription_id VARCHAR2(255) UNIQUE,
+      stripe_customer_id VARCHAR2(255),
+      status VARCHAR2(20) DEFAULT 'TRIALING' CHECK (status IN ('TRIALING', 'ACTIVE', 'PAST_DUE', 'CANCELLED', 'UNPAID')),
+      plan VARCHAR2(20) DEFAULT 'monthly',
+      current_period_start TIMESTAMP,
+      current_period_end TIMESTAMP,
+      cancelled_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`,
+    `CREATE TABLE IF NOT EXISTS payments (
+      id VARCHAR2(255) PRIMARY KEY,
+      user_id VARCHAR2(255) NOT NULL,
+      subscription_id VARCHAR2(255),
+      stripe_payment_id VARCHAR2(255) UNIQUE NOT NULL,
+      amount NUMBER NOT NULL,
+      currency VARCHAR2(10) DEFAULT 'usd',
+      status VARCHAR2(20) DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`,
+    `CREATE TABLE IF NOT EXISTS notifications (
+      id VARCHAR2(255) PRIMARY KEY,
+      user_id VARCHAR2(255) NOT NULL,
+      title VARCHAR2(500) NOT NULL,
+      body CLOB NOT NULL,
+      data CLOB,
+      read_status NUMBER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`,
+    `CREATE TABLE IF NOT EXISTS activity_logs (
+      id VARCHAR2(255) PRIMARY KEY,
+      user_id VARCHAR2(255),
+      action VARCHAR2(100) NOT NULL,
+      entity_type VARCHAR2(100),
+      entity_id VARCHAR2(255),
+      metadata CLOB,
+      ip_address VARCHAR2(50),
+      user_agent VARCHAR2(500),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_items_user_id ON items(user_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, read_status)`,
+    `CREATE INDEX IF NOT EXISTS idx_activity_logs_user_id ON activity_logs(user_id)`,
+  ];
+
+  const connection = await pool.getConnection();
+  try {
+    for (const sql of schemaStatements) {
+      try {
+        await connection.execute(sql);
+        logger.info({ sql: sql.substring(0, 50) + '...' }, 'Table/index created');
+      } catch (err: any) {
+        // Ignore "table already exists" errors
+        if (err.errorNum !== 955 && err.errorNum !== 1408) {
+          logger.warn({ error: err.message, sql: sql.substring(0, 50) }, 'Skipped SQL statement');
+        }
+      }
+    }
+    logger.info('Oracle schema initialized');
+  } finally {
+    await connection.close();
   }
 }
 
