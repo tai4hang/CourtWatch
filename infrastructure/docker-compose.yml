@@ -27,17 +27,18 @@ services:
     networks:
       - app-network
 
-  # Oracle AI DB (using Oracle Express for dev)
+  # PostgreSQL Database
   db:
-    image: container-registry.oracle.com/database/express:21.3.0-xe
+    image: postgres:15-alpine
     container_name: startup-db
     environment:
-      - ORACLE_PWD=${ORACLE_PASSWORD:-OraclePass123}
+      - POSTGRES_USER=${POSTGRES_USER:-app}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+      - POSTGRES_DB=${POSTGRES_DB:-startup}
     ports:
-      - "1521:1521"
-      - "5500:5500"
+      - "5432:5432"
     volumes:
-      - oracle-data:/opt/oracle/oradata
+      - postgres-data:/var/lib/postgresql/data
     restart: unless-stopped
     networks:
       - app-network
@@ -70,7 +71,7 @@ services:
       - app-network
 
 volumes:
-  oracle-data:
+  postgres-data:
   redis-data:
 
 networks:

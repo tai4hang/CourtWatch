@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "oracle"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -56,8 +56,8 @@ model Item {
   id          String   @id @default(uuid())
   userId      String   @map("user_id")
   title       String
-  description String?  @db.VarChar(2000)
-  metadata    Json?    @db.Json
+  description String?
+  metadata    Json?
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
@@ -102,7 +102,7 @@ model Payment {
   userId          String   @map("user_id")
   subscriptionId String?  @map("subscription_id")
   stripePaymentId String  @unique @map("stripe_payment_id")
-  amount          Int      @db.Number
+  amount          Int
   currency        String   @default("usd")
   status          String   @default("pending")
   createdAt       DateTime @default(now()) @map("created_at")
@@ -116,8 +116,8 @@ model Notification {
   id        String   @id @default(uuid())
   userId    String   @map("user_id")
   title     String
-  body      String   @db.VarChar(500)
-  data      Json?    @db.Json
+  body      String
+  data      Json?
   read      Boolean  @default(false)
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -135,7 +135,7 @@ model ActivityLog {
   action    String
   entityType String?  @map("entity_type")
   entityId  String?  @map("entity_id")
-  metadata  Json?    @db.Json
+  metadata  Json?
   ipAddress String?  @map("ip_address")
   userAgent String?  @map("user_agent")
   createdAt DateTime @default(now()) @map("created_at")
