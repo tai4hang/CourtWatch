@@ -15,27 +15,31 @@ OCI_SECRET_ORACLE_WALLET_PASSWORD="${OCI_SECRET_ORACLE_WALLET_PASSWORD}"
 
 echo "=== Starting entrypoint ==="
 
-# Function to get secret value
+# Function to get secret value using instance principal auth
 get_secret() {
     local secret_ocid="$1"
     if [ -z "$secret_ocid" ]; then
         echo "Warning: Secret OCID not provided"
         return 1
     fi
-    oci secrets secret get --secret-id "$secret_ocid" --query 'data."secret-bundle"."contents"[0]."payload"' --raw-output | base64 -d
+    oci secrets secret get --secret-id "$secret_ocid" \
+        --query 'data."secret-bundle"."contents"[0]."payload"' \
+        --raw-output \
+        --auth instance_principal | base64 -d
 }
 
-# Download and extract wallet from OCI bucket
+# Download and extract wallet from OCI bucket using instance principal
 echo "Downloading Oracle wallet from OCI bucket: $OCI_BUCKET_NAME"
 mkdir -p "$OCI_WALLET_DIR"
 
 if command -v oci >/dev/null 2>&1; then
-    echo "Using OCI CLI to download wallet..."
+    echo "Using OCI CLI with instance principal auth..."
     oci os object get \
         --namespace-name "$OCI_NAMESPACE" \
         --bucket-name "$OCI_BUCKET_NAME" \
         --name "$OCI_OBJECT_NAME" \
-        --file "$OCI_WALLET_DIR/wallet.zip" || \
+        --file "$OCI_WALLET_DIR/wallet.zip" \
+        --auth instance_principal || \
     (echo "OCI bucket download failed, trying PAR_URL..." && \
     curl -L "$OCI_PAR_URL" -o "$OCI_WALLET_DIR/wallet.zip")
 else
@@ -49,7 +53,7 @@ unzip -o "$OCI_WALLET_DIR/wallet.zip" -d "$OCI_WALLET_DIR"
 rm -f "$OCI_WALLET_DIR/wallet.zip"
 echo "Wallet ready at $OCI_WALLET_DIR"
 
-# Fetch Oracle credentials from OCI Secrets
+# Fetch Oracle credentials from OCI Secrets using instance principal
 echo "Fetching Oracle credentials from OCI Secrets..."
 
 if [ -n "$OCI_SECRET_ORACLE_USER" ]; then
