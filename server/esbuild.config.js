@@ -6,7 +6,7 @@ await esbuild.build({
   platform: 'node',
   outfile: 'dist/main.js',
   external: ['oracledb', 'better-sqlite3'],
-  format: 'esm',
+  format: 'cjs',
   target: 'node20',
   sourcemap: true,
 });
