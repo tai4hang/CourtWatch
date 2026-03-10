@@ -18,8 +18,9 @@ FROM node:20-alpine AS production
 
 WORKDIR /app
 
-# Install only required runtime dependencies
-RUN apk add --no-cache openssl ca-certificates
+# Install runtime dependencies (including OCI CLI)
+RUN apk add --no-cache openssl ca-certificates curl unzip python3 py3-pip && \
+    pip3 install --no-cache-dir oci-cli --break-system-packages
 
 # Security: Run as non-root user
 RUN addgroup -g 1001 -S nodejs && \
@@ -29,6 +30,10 @@ RUN addgroup -g 1001 -S nodejs && \
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
+
+# Copy entrypoint script
+COPY --chown=nodejs:nodejs entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Set environment
 ENV NODE_ENV=production
@@ -46,5 +51,6 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
 
-# Start application
+# Start application with entrypoint
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["node", "dist/main.js"]
