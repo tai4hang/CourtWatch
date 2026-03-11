@@ -70,6 +70,7 @@ async function initSqlite() {
   try {
     const initSqlJs = require('sql.js');
     const dbPath = process.env.SQLITE_PATH || './data/dev.db';
+    const wasmPath = require('path').join(__dirname, 'sql-wasm.wasm');
     
     // Ensure directory exists
     const fs = require('fs');
@@ -78,8 +79,10 @@ async function initSqlite() {
       fs.mkdirSync(dir, { recursive: true });
     }
 
-    // Initialize SQL.js
-    const SQL = await initSqlJs();
+    // Initialize SQL.js with explicit WASM path and no workers
+    const SQL = await initSqlJs({
+      locateFile: () => wasmPath
+    });
     
     // Load existing database or create new one
     let dbBuffer = null;
