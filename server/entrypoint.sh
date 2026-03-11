@@ -7,6 +7,9 @@ OCI_OBJECT_NAME="${OCI_OBJECT_NAME:-Wallet_UB3AK3MTVBQJS41L.zip}"
 OCI_WALLET_DIR="/app/wallet"
 OCI_REGION="${OCI_REGION:-us-phoenix-1}"
 
+# PAR_URL or OCI CLI configuration
+PAR_URL="${PAR_URL}"
+
 # OCI Secret OCIDs
 OCI_SECRET_ORACLE_USER="${OCI_SECRET_ORACLE_USER}"
 OCI_SECRET_ORACLE_PASSWORD="${OCI_SECRET_ORACLE_PASSWORD}"
@@ -28,23 +31,24 @@ get_secret() {
         --auth instance_principal | base64 -d
 }
 
-# Download and extract wallet from OCI bucket using instance principal
-echo "Downloading Oracle wallet from OCI bucket: $OCI_BUCKET_NAME"
+# Create wallet directory
 mkdir -p "$OCI_WALLET_DIR"
 
-if command -v oci >/dev/null 2>&1; then
-    echo "Using OCI CLI with instance principal auth..."
+# Download wallet - try PAR_URL first (simpler, no IAM needed)
+if [ -n "$PAR_URL" ]; then
+    echo "Downloading wallet via PAR_URL..."
+    curl -L "$PAR_URL" -o "$OCI_WALLET_DIR/wallet.zip"
+elif command -v oci >/dev/null 2>&1; then
+    echo "Downloading wallet via OCI CLI (instance principal)..."
     oci os object get \
         --namespace-name "$OCI_NAMESPACE" \
         --bucket-name "$OCI_BUCKET_NAME" \
         --name "$OCI_OBJECT_NAME" \
         --file "$OCI_WALLET_DIR/wallet.zip" \
-        --auth instance_principal || \
-    (echo "OCI bucket download failed, trying PAR_URL..." && \
-    curl -L "$OCI_PAR_URL" -o "$OCI_WALLET_DIR/wallet.zip")
+        --auth instance_principal
 else
-    echo "OCI CLI not found, trying PAR_URL..."
-    curl -L "$OCI_PAR_URL" -o "$OCI_WALLET_DIR/wallet.zip"
+    echo "Error: No PAR_URL or OCI CLI available"
+    exit 1
 fi
 
 # Extract wallet
