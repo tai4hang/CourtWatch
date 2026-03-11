@@ -39,5 +39,4 @@ jobs:
           push: true
           platforms: linux/arm64
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/startup-api:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          no-cache: true
