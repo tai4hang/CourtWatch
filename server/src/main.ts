@@ -7,10 +7,15 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 async function start() {
   try {
     // Initialize Oracle database connection
+    console.log('Starting initDb...');
     await initDb();
+    console.log('initDb completed - about to log');
     logger.info('Database connected');
+    console.log('Database connected logged');
+    console.log('About to build app...');
 
     const app = await buildApp();
+    console.log('App built, about to listen...');
     
     await app.listen({ port: PORT, host: '0.0.0.0' });
     

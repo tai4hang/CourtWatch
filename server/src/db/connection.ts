@@ -28,7 +28,10 @@ async function initOracle() {
   try {
     const hasWallet = dbConfig.walletLocation && existsSync(dbConfig.walletLocation);
     
+    // Set TNS_ADMIN for wallet-based connections
     if (hasWallet) {
+      process.env.TNS_ADMIN = dbConfig.walletLocation;
+      
       try {
         await oracledb.initOracleClient({ 
           configDir: dbConfig.walletLocation 
@@ -49,7 +52,7 @@ async function initOracle() {
     };
 
     if (hasWallet && dbConfig.walletPassword) {
-      poolConfig.walletDirectory = dbConfig.walletLocation;
+      poolConfig.walletLocation = dbConfig.walletLocation;
       poolConfig.walletPassword = dbConfig.walletPassword;
     }
 
