@@ -35,27 +35,32 @@ get_secret() {
 mkdir -p "$OCI_WALLET_DIR"
 
 # Download wallet - try PAR_URL first (simpler, no IAM needed)
-if [ -n "$PAR_URL" ]; then
-    echo "Downloading wallet via PAR_URL..."
-    curl -L "$PAR_URL" -o "$OCI_WALLET_DIR/wallet.zip"
-elif command -v oci >/dev/null 2>&1; then
-    echo "Downloading wallet via OCI CLI (instance principal)..."
-    oci os object get \
-        --namespace-name "$OCI_NAMESPACE" \
-        --bucket-name "$OCI_BUCKET_NAME" \
-        --name "$OCI_OBJECT_NAME" \
-        --file "$OCI_WALLET_DIR/wallet.zip" \
-        --auth instance_principal
-else
-    echo "Error: No PAR_URL or OCI CLI available"
-    exit 1
-fi
+# Skip if DB_TYPE is sqlite (no wallet needed)
+if [ "$DB_TYPE" != "sqlite" ]; then
+    if [ -n "$PAR_URL" ]; then
+        echo "Downloading wallet via PAR_URL..."
+        curl -L "$PAR_URL" -o "$OCI_WALLET_DIR/wallet.zip"
+    elif command -v oci >/dev/null 2>&1; then
+        echo "Downloading wallet via OCI CLI (instance principal)..."
+        oci os object get \
+            --namespace-name "$OCI_NAMESPACE" \
+            --bucket-name "$OCI_BUCKET_NAME" \
+            --name "$OCI_OBJECT_NAME" \
+            --file "$OCI_WALLET_DIR/wallet.zip" \
+            --auth instance_principal
+    else
+        echo "Error: No PAR_URL or OCI CLI available"
+        exit 1
+    fi
 
-# Extract wallet
-echo "Extracting wallet..."
-unzip -o "$OCI_WALLET_DIR/wallet.zip" -d "$OCI_WALLET_DIR"
-rm -f "$OCI_WALLET_DIR/wallet.zip"
-echo "Wallet ready at $OCI_WALLET_DIR"
+    # Extract wallet
+    echo "Extracting wallet..."
+    unzip -o "$OCI_WALLET_DIR/wallet.zip" -d "$OCI_WALLET_DIR"
+    rm -f "$OCI_WALLET_DIR/wallet.zip"
+    echo "Wallet ready at $OCI_WALLET_DIR"
+else
+    echo "Skipping wallet download (SQLite mode)"
+fi
 
 # Fetch Oracle credentials from OCI Secrets using instance principal
 echo "Fetching Oracle credentials from OCI Secrets..."

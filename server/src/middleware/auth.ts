@@ -8,12 +8,6 @@ export interface AuthUser {
   role: 'USER' | 'ADMIN';
 }
 
-declare module 'fastify' {
-  interface FastifyRequest {
-    user?: AuthUser;
-  }
-}
-
 export async function authenticate(
   request: FastifyRequest,
   reply: FastifyReply

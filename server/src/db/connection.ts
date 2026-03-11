@@ -68,7 +68,7 @@ async function initOracle() {
 
 async function initSqlite() {
   try {
-    const Database = require('better-sqlite3');
+    const initSqlJs = require('sql.js');
     const dbPath = process.env.SQLITE_PATH || './data/dev.db';
     
     // Ensure directory exists
@@ -78,11 +78,35 @@ async function initSqlite() {
       fs.mkdirSync(dir, { recursive: true });
     }
 
-    sqliteDb = new Database(dbPath);
-    sqliteDb.pragma('journal_mode = WAL');
+    // Initialize SQL.js
+    const SQL = await initSqlJs();
+    
+    // Load existing database or create new one
+    let dbBuffer = null;
+    if (existsSync(dbPath)) {
+      dbBuffer = fs.readFileSync(dbPath);
+    }
+    
+    sqliteDb = new SQL.Database(dbBuffer);
     
     // Initialize schema
     initializeSqliteSchema();
+    
+    // Save to file
+    const data = sqliteDb.export();
+    const buffer = Buffer.from(data);
+    fs.writeFileSync(dbPath, buffer);
+    
+    // Set up periodic save
+    setInterval(() => {
+      try {
+        const data = sqliteDb.export();
+        const buffer = Buffer.from(data);
+        fs.writeFileSync(dbPath, buffer);
+      } catch (e) {
+        logger.error({ error: e.message }, 'Failed to save SQLite database');
+      }
+    }, 5000);
     
     logger.info('SQLite database initialized');
     return sqliteDb;
