@@ -124,17 +124,17 @@ async function initSqlite() {
 
 async function initializeOracleSchema(pool: any) {
   const schemaStatements = [
-    `CREATE TABLE IF NOT EXISTS users (
+    `CREATE TABLE users (
       id VARCHAR2(255) PRIMARY KEY,
       email VARCHAR2(255) UNIQUE NOT NULL,
       name VARCHAR2(255),
       password_hash VARCHAR2(255) NOT NULL,
       avatar_url VARCHAR2(500),
-      role VARCHAR2(20) DEFAULT 'USER' CHECK (role IN ('USER', 'ADMIN')),
+      role VARCHAR2(20) DEFAULT 'USER',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`,
-    `CREATE TABLE IF NOT EXISTS sessions (
+    `CREATE TABLE sessions (
       id VARCHAR2(255) PRIMARY KEY,
       user_id VARCHAR2(255) NOT NULL,
       refresh_token VARCHAR2(500) UNIQUE NOT NULL,
@@ -143,7 +143,7 @@ async function initializeOracleSchema(pool: any) {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )`,
-    `CREATE TABLE IF NOT EXISTS items (
+    `CREATE TABLE items (
       id VARCHAR2(255) PRIMARY KEY,
       user_id VARCHAR2(255) NOT NULL,
       title VARCHAR2(500) NOT NULL,
@@ -153,12 +153,12 @@ async function initializeOracleSchema(pool: any) {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )`,
-    `CREATE TABLE IF NOT EXISTS subscriptions (
+    `CREATE TABLE subscriptions (
       id VARCHAR2(255) PRIMARY KEY,
       user_id VARCHAR2(255) UNIQUE NOT NULL,
       stripe_subscription_id VARCHAR2(255) UNIQUE,
       stripe_customer_id VARCHAR2(255),
-      status VARCHAR2(20) DEFAULT 'TRIALING' CHECK (status IN ('TRIALING', 'ACTIVE', 'PAST_DUE', 'CANCELLED', 'UNPAID')),
+      status VARCHAR2(20) DEFAULT 'TRIALING',
       plan VARCHAR2(20) DEFAULT 'monthly',
       current_period_start TIMESTAMP,
       current_period_end TIMESTAMP,
@@ -167,7 +167,7 @@ async function initializeOracleSchema(pool: any) {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )`,
-    `CREATE TABLE IF NOT EXISTS payments (
+    `CREATE TABLE payments (
       id VARCHAR2(255) PRIMARY KEY,
       user_id VARCHAR2(255) NOT NULL,
       subscription_id VARCHAR2(255),
@@ -178,7 +178,7 @@ async function initializeOracleSchema(pool: any) {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )`,
-    `CREATE TABLE IF NOT EXISTS notifications (
+    `CREATE TABLE notifications (
       id VARCHAR2(255) PRIMARY KEY,
       user_id VARCHAR2(255) NOT NULL,
       title VARCHAR2(500) NOT NULL,
@@ -188,7 +188,7 @@ async function initializeOracleSchema(pool: any) {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )`,
-    `CREATE TABLE IF NOT EXISTS activity_logs (
+    `CREATE TABLE activity_logs (
       id VARCHAR2(255) PRIMARY KEY,
       user_id VARCHAR2(255),
       action VARCHAR2(100) NOT NULL,
@@ -199,25 +199,43 @@ async function initializeOracleSchema(pool: any) {
       user_agent VARCHAR2(500),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`,
-    `CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)`,
-    `CREATE INDEX IF NOT EXISTS idx_items_user_id ON items(user_id)`,
-    `CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, read_status)`,
-    `CREATE INDEX IF NOT EXISTS idx_activity_logs_user_id ON activity_logs(user_id)`,
+  ];
+  
+  const indexStatements = [
+    `CREATE INDEX idx_sessions_user_id ON sessions(user_id)`,
+    `CREATE INDEX idx_items_user_id ON items(user_id)`,
+    `CREATE INDEX idx_notifications_user_read ON notifications(user_id, read_status)`,
+    `CREATE INDEX idx_activity_logs_user_id ON activity_logs(user_id)`,
   ];
 
   const connection = await pool.getConnection();
   try {
+    // Create tables
     for (const sql of schemaStatements) {
       try {
         await connection.execute(sql);
-        logger.info({ sql: sql.substring(0, 50) + '...' }, 'Table/index created');
+        logger.info({ sql: sql.substring(0, 50) + '...' }, 'Table created');
       } catch (err: any) {
-        // Ignore "table already exists" errors
+        // Ignore "table already exists" errors (ORA-00955)
         if (err.errorNum !== 955 && err.errorNum !== 1408) {
-          logger.warn({ error: err.message, sql: sql.substring(0, 50) }, 'Skipped SQL statement');
+          logger.warn({ error: err.message, sql: sql.substring(0, 50) }, 'Skipped table statement');
         }
       }
     }
+    
+    // Create indexes (ignore if already exist)
+    for (const sql of indexStatements) {
+      try {
+        await connection.execute(sql);
+        logger.info({ sql: sql.substring(0, 50) + '...' }, 'Index created');
+      } catch (err: any) {
+        // Ignore "index already exists" errors (ORA-00955)
+        if (err.errorNum !== 955) {
+          logger.warn({ error: err.message, sql: sql.substring(0, 50) }, 'Skipped index statement');
+        }
+      }
+    }
+    
     logger.info('Oracle schema initialized');
   } finally {
     await connection.close();
