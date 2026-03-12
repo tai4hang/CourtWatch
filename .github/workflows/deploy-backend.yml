@@ -32,11 +32,22 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Generate tags
+        id: vars
+        run: |
+          TAG=$(date +%Y%m%d-%H%M%S)
+          SHA_SHORT=$(echo ${{ github.sha }} | cut -c1-7)
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "sha=${SHA_SHORT}" >> $GITHUB_OUTPUT
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: ./server
           push: true
           platforms: linux/arm64
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/startup-api:latest
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/startup-api:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/startup-api:${{ steps.vars.outputs.tag }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/startup-api:${{ steps.vars.outputs.sha }}
           no-cache: true
