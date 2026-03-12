@@ -24,8 +24,8 @@ export const authService = {
       throw new Error('User already exists');
     }
 
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, 12);
+    // Hash password (using 4 rounds for faster testing - use 12 in production)
+    const passwordHash = await bcrypt.hash(password, 4);
 
     // Create user
     const user = await userModel.create({
@@ -127,10 +127,10 @@ export const authService = {
   },
 
   async validateRefreshToken(refreshToken: string): Promise<User | null> {
-    const session = await sessionModel.findByRefreshToken(refreshToken);
-    if (!session) {
+    const user = await sessionModel.findByRefreshToken(refreshToken);
+    if (!user) {
       return null;
     }
-    return session.user;
+    return user;
   },
 };

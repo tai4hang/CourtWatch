@@ -372,6 +372,66 @@ export async function closeDb(): Promise<void> {
   }
 }
 
+// Helper function to convert Oracle LOB objects to strings
+async function convertLobsToStrings(row: any): Promise<any> {
+  const converted: any = {};
+  
+  for (const key of Object.keys(row)) {
+    const value = row[key];
+    
+    // Check if value is an Oracle Lob object (has _type property that indicates LOB)
+    if (value && typeof value === 'object' && value._type !== undefined) {
+      try {
+        // Use getData() method which is the proper way to read LOB data in thin mode
+        if (typeof value.getData === 'function') {
+          const data = await value.getData();
+          converted[key.toLowerCase()] = data;
+          continue;
+        }
+        // Fallback to read method if getData doesn't work
+        if (typeof value.read === 'function') {
+          const chunks: string[] = [];
+          let chunk;
+          while ((chunk = await value.read()) !== undefined) {
+            if (typeof chunk === 'string') {
+              chunks.push(chunk);
+            } else if (Buffer.isBuffer(chunk)) {
+              chunks.push(chunk.toString('utf-8'));
+            }
+          }
+          converted[key.toLowerCase()] = chunks.join('');
+          continue;
+        }
+      } catch (err) {
+        // If we can't read the LOB, just store null
+        logger.warn({ key, error: err }, 'Failed to convert LOB to string');
+        converted[key.toLowerCase()] = null;
+        continue;
+      }
+    }
+    
+    converted[key.toLowerCase()] = value;
+  }
+  
+  return converted;
+}
+
+// Helper function to convert Oracle row keys to lowercase and handle LOBs
+async function transformRowKeys<T>(row: any): Promise<T> {
+  // First convert all keys to lowercase
+  const transformed: any = {};
+  for (const key of Object.keys(row)) {
+    transformed[key.toLowerCase()] = row[key];
+  }
+  
+  // If using Oracle, convert LOBs to strings
+  if (DB_TYPE === 'oracle') {
+    return await convertLobsToStrings(transformed) as T;
+  }
+  
+  return transformed as T;
+}
+
 // Helper function to run queries
 export async function execute<T = any>(
   sql: string,
@@ -384,7 +444,12 @@ export async function execute<T = any>(
       const result = await connection.execute(sql, params, {
         outFormat: (require('oracledb') as any).OUT_FORMAT_OBJECT,
       });
-      return (result.rows || []) as T[];
+      // Transform row keys from UPPERCASE to lowercase and convert LOBs
+      const rows = [];
+      for (const row of (result.rows || [])) {
+        rows.push(await transformRowKeys<T>(row));
+      }
+      return rows;
     } else {
       // SQLite
       const stmt = connection.prepare(sql);

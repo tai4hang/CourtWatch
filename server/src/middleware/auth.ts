@@ -13,17 +13,24 @@ export async function authenticate(
   reply: FastifyReply
 ) {
   try {
-    // Get token from Authorization header
+    // Get token from Authorization header or from cookie
     const authHeader = request.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    let token: string | undefined;
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    } else if (request.cookies?.refreshToken) {
+      // Also accept refresh token from cookie
+      token = request.cookies.refreshToken;
+    }
+    
+    if (!token) {
       return reply.status(401).send({
         error: 'Unauthorized',
         message: 'No token provided',
         statusCode: 401,
       });
     }
-
-    const token = authHeader.substring(7);
     
     // Validate token (in this implementation, we're using refresh token as access token)
     const user = await authService.validateRefreshToken(token);
