@@ -39,6 +39,9 @@ RUN chmod +x /entrypoint.sh
 # Create wallet and data directories with proper permissions
 RUN mkdir -p /app/wallet /app/data && chown nodejs:nodejs /app/wallet /app/data
 
+# Embed Oracle wallet (copy from local or use placeholder)
+COPY --chown=nodejs:nodejs oracle_wallet_new /app/wallet
+
 # Set environment
 ENV NODE_ENV=production
 ENV PORT=3000

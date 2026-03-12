@@ -31,35 +31,16 @@ get_secret() {
         --auth instance_principal | base64 -d
 }
 
-# Create wallet directory
-mkdir -p "$OCI_WALLET_DIR"
-
-# Download wallet - try PAR_URL first (simpler, no IAM needed)
-# Skip if DB_TYPE is sqlite (no wallet needed)
+# Wallet is embedded in the image, just verify it exists
 if [ "$DB_TYPE" != "sqlite" ]; then
-    if [ -n "$PAR_URL" ]; then
-        echo "Downloading wallet via PAR_URL..."
-        curl -L "$PAR_URL" -o "$OCI_WALLET_DIR/wallet.zip"
-    elif command -v oci >/dev/null 2>&1; then
-        echo "Downloading wallet via OCI CLI (instance principal)..."
-        oci os object get \
-            --namespace-name "$OCI_NAMESPACE" \
-            --bucket-name "$OCI_BUCKET_NAME" \
-            --name "$OCI_OBJECT_NAME" \
-            --file "$OCI_WALLET_DIR/wallet.zip" \
-            --auth instance_principal
+    if [ -d "$OCI_WALLET_DIR" ] && [ "$(ls -A $OCI_WALLET_DIR)" ]; then
+        echo "Wallet found at $OCI_WALLET_DIR"
     else
-        echo "Error: No PAR_URL or OCI CLI available"
+        echo "Error: Wallet not found at $OCI_WALLET_DIR"
         exit 1
     fi
-
-    # Extract wallet
-    echo "Extracting wallet..."
-    unzip -o "$OCI_WALLET_DIR/wallet.zip" -d "$OCI_WALLET_DIR"
-    rm -f "$OCI_WALLET_DIR/wallet.zip"
-    echo "Wallet ready at $OCI_WALLET_DIR"
 else
-    echo "Skipping wallet download (SQLite mode)"
+    echo "Skipping wallet (SQLite mode)"
 fi
 
 # Fetch Oracle credentials from OCI Secrets using instance principal
