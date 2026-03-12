@@ -3,9 +3,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies with retry
+# Install dependencies
 COPY package*.json ./
-RUN npm ci --prefer-offline --no-audit --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
+RUN npm install --prefer-offline --no-audit
 
 # Copy source
 COPY . .

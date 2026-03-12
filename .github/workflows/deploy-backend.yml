@@ -50,4 +50,5 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/startup-api:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/startup-api:${{ steps.vars.outputs.tag }}
             ${{ secrets.DOCKERHUB_USERNAME }}/startup-api:${{ steps.vars.outputs.sha }}
-          no-cache: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
