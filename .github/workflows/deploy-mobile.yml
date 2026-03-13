@@ -38,7 +38,10 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           cd mobile
-          eas init --non-interactive || true
+          # Check if projectId exists in eas.json, if not initialize
+          if ! grep -q '"projectId"' mobile/eas.json 2>/dev/null; then
+            eas init --id startup-app --non-interactive || true
+          fi
 
       - name: Prebuild iOS
         run: |
@@ -95,7 +98,10 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           cd mobile
-          eas init --non-interactive || true
+          # Check if projectId exists in eas.json, if not initialize
+          if ! grep -q '"projectId"' mobile/eas.json 2>/dev/null; then
+            eas init --id startup-app --non-interactive || true
+          fi
 
       - name: Prebuild Android
         run: |
@@ -148,7 +154,10 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           cd mobile
-          eas init --non-interactive || true
+          # Check if projectId exists in eas.json, if not initialize
+          if ! grep -q '"projectId"' mobile/eas.json 2>/dev/null; then
+            eas init --id startup-app --non-interactive || true
+          fi
 
       - name: Prebuild iOS
         run: |
