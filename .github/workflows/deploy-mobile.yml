@@ -34,9 +34,11 @@ jobs:
         run: npm install -g eas-cli
 
       - name: Initialize EAS project
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           cd mobile
-          yes | eas init --non-interactive 2>/dev/null || true
+          eas init --non-interactive || true
 
       - name: Prebuild iOS
         run: |
@@ -89,9 +91,11 @@ jobs:
         run: npm install -g eas-cli
 
       - name: Initialize EAS project
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           cd mobile
-          yes | eas init --non-interactive 2>/dev/null || true
+          eas init --non-interactive || true
 
       - name: Prebuild Android
         run: |
@@ -140,9 +144,11 @@ jobs:
         run: npm install -g eas-cli
 
       - name: Initialize EAS project
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           cd mobile
-          yes | eas init --non-interactive 2>/dev/null || true
+          eas init --non-interactive || true
 
       - name: Prebuild iOS
         run: |
