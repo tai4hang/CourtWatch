@@ -28,7 +28,7 @@ jobs:
       - name: Setup Expo
         uses: expo/expo-github-action@v8
         with:
-          expo-version: '~50.0.0'
+          expo-version: '50.0.21'
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Install dependencies
@@ -81,7 +81,7 @@ jobs:
       - name: Setup Expo
         uses: expo/expo-github-action@v8
         with:
-          expo-version: '~50.0.0'
+          expo-version: '50.0.21'
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Install dependencies
@@ -130,7 +130,7 @@ jobs:
       - name: Setup Expo
         uses: expo/expo-github-action@v8
         with:
-          expo-version: '~50.0.0'
+          expo-version: '50.0.21'
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Install dependencies
