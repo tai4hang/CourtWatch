@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { authService } from '../services/auth.js';
 import { trackEvent, AnalyticsEvents } from '../services/analytics.js';
 import { authenticate } from '../middleware/auth.js';
+import { logger } from '../utils/logger.js';
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -18,7 +19,9 @@ const loginSchema = z.object({
 export async function authRoutes(fastify: FastifyInstance) {
   // Register
   fastify.post('/register', async (request: FastifyRequest, reply: FastifyReply) => {
+    logger.info({ body: request.body }, 'Register: parsing body');
     const input = registerSchema.parse(request.body);
+    logger.info({ input }, 'Register: calling auth service');
     const result = await authService.register(input);
     
     trackEvent(AnalyticsEvents.USER_SIGNUP, { email: input.email }, result.user.id);

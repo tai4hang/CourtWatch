@@ -1,3 +1,39 @@
+/**
+ * Database Models
+ * 
+ * This module defines data models and their CRUD operations.
+ * 
+ * =============================================================================
+ * IMPORTANT: SQL Syntax
+ * =============================================================================
+ * 
+ * The SQL queries below use Oracle SQL syntax because that's the primary
+ * target database. The connection.ts module automatically converts this to
+ * SQLite-compatible syntax when DB_TYPE=sqlite.
+ * 
+ * Key differences to be aware of:
+ * 
+ * 1. Pagination:
+ *    Oracle:  SELECT ... OFFSET :2 ROWS FETCH NEXT :3 ROWS ONLY
+ *    SQLite:  SELECT ... LIMIT :3 OFFSET :2
+ *    (Automatically converted by connection.ts)
+ * 
+ * 2. Parameter binding:
+ *    Oracle:  Uses :1, :2, :3 placeholders with native binding
+ *    SQLite:  Uses :1, :2, :3 but with manual string substitution
+ *    (Handled by connection.ts)
+ * 
+ * 3. Column names:
+ *    Oracle:  Returns UPPERCASE column names (e.g., USER_ID, CREATED_AT)
+ *    SQLite:  Returns as-defined (e.g., user_id, created_at)
+ *    (Converted to lowercase by connection.ts)
+ * 
+ * If you add new queries, follow these patterns:
+ * - Use :1, :2, :3 for positional parameters (works in both)
+ * - Use OFFSET :n ROWS FETCH NEXT :m ROWS ONLY for pagination (converted automatically)
+ * - Use UPPERCASE column names to match Oracle convention
+ */
+
 import { execute, executeOne, run, getDbConnection } from './connection.js';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -137,15 +173,27 @@ export const sessionModel = {
     };
   },
 
-  async findByRefreshToken(refreshToken: string): Promise<(Session & { user: User }) | null> {
-    const session = await executeOne<Session & { user: User }>(
-      `SELECT s.*, u.*, u.id as user_id, u.email as user_email
+  async findByRefreshToken(refreshToken: string): Promise<User | null> {
+    // First get the session to find the user_id
+    const session = await executeOne<Session>(
+      `SELECT s.user_id, s.expires_at
        FROM sessions s
-       JOIN users u ON s.user_id = u.id
        WHERE s.refresh_token = :1 AND s.expires_at > CURRENT_TIMESTAMP`,
       [refreshToken]
     );
-    return session;
+    
+    if (!session) {
+      return null;
+    }
+    
+    // Then get the user
+    const user = await executeOne<User>(
+      `SELECT id, email, name, password_hash, avatar_url, role, created_at, updated_at
+       FROM users WHERE id = :1`,
+      [session.user_id]
+    );
+    
+    return user;
   },
 
   async delete(refreshToken: string): Promise<void> {

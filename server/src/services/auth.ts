@@ -16,16 +16,21 @@ export interface LoginInput {
 
 export const authService = {
   async register(input: RegisterInput): Promise<{ user: Omit<User, 'password_hash'>; accessToken: string; refreshToken: string }> {
+    logger.info({ email: input.email }, 'Starting register');
     const { email, password, name } = input;
 
     // Check if user exists
+    logger.info('Checking if user exists...');
     const existing = await userModel.findByEmail(email);
+    logger.info({ existing: !!existing }, 'User check complete');
     if (existing) {
       throw new Error('User already exists');
     }
 
     // Hash password (using 4 rounds for faster testing - use 12 in production)
+    logger.info('Hashing password...');
     const passwordHash = await bcrypt.hash(password, 4);
+    logger.info('Password hashed');
 
     // Create user
     const user = await userModel.create({
