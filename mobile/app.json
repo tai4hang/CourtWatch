@@ -17,8 +17,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.startup.app",
-      "appleTeamId": "${APPLE_TEAM_ID}"
+      "bundleIdentifier": "com.startup.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -32,11 +31,6 @@
     },
     "plugins": [
       "expo-router"
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "${EAS_PROJECT_ID}"
-      }
-    }
+    ]
   }
 }
