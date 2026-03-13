@@ -11,26 +11,9 @@
         "simulator": true
       }
     },
-    "production": {
-      "android": {
-        "buildType": "app-bundle"
-      },
-      "ios": {
-        "enterprise": false
-      }
-    }
+    "production": {}
   },
   "submit": {
-    "production": {
-      "android": {
-        "serviceAccountKeyPath": "",
-        "track": "internal"
-      },
-      "ios": {
-        "appleId": "",
-        "ascAppId": "",
-        "appleTeamId": ""
-      }
-    }
+    "production": {}
   }
 }
