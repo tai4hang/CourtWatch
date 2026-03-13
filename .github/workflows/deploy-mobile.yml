@@ -33,6 +33,13 @@ jobs:
       - name: Setup EAS CLI
         run: npm install -g eas-cli
 
+      - name: Initialize EAS project
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          cd mobile
+          eas init --non-interactive --force 2>&1 || echo "EAS init failed, continuing..."
+
       - name: Prebuild iOS
         run: |
           cd mobile
@@ -82,6 +89,13 @@ jobs:
       - name: Setup EAS CLI
         run: npm install -g eas-cli
 
+      - name: Initialize EAS project
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          cd mobile
+          eas init --non-interactive --force 2>&1 || echo "EAS init failed, continuing..."
+
       - name: Prebuild Android
         run: |
           cd mobile
@@ -127,6 +141,13 @@ jobs:
 
       - name: Setup EAS CLI
         run: npm install -g eas-cli
+
+      - name: Initialize EAS project
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          cd mobile
+          eas init --non-interactive --force 2>&1 || echo "EAS init failed, continuing..."
 
       - name: Prebuild iOS
         run: |
