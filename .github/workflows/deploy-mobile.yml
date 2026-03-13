@@ -33,6 +33,11 @@ jobs:
       - name: Setup EAS CLI
         run: npm install -g eas-cli
 
+      - name: Initialize EAS project
+        run: |
+          cd mobile
+          eas init --idempotent --non-interactive
+
       - name: Prebuild iOS
         run: |
           cd mobile
@@ -83,6 +88,11 @@ jobs:
       - name: Setup EAS CLI
         run: npm install -g eas-cli
 
+      - name: Initialize EAS project
+        run: |
+          cd mobile
+          eas init --idempotent --non-interactive
+
       - name: Prebuild Android
         run: |
           cd mobile
@@ -128,6 +138,16 @@ jobs:
 
       - name: Setup EAS CLI
         run: npm install -g eas-cli
+
+      - name: Initialize EAS project
+        run: |
+          cd mobile
+          eas init --idempotent --non-interactive
+
+      - name: Prebuild iOS
+        run: |
+          cd mobile
+          npx expo prebuild --platform ios --clean
 
       - name: Build iOS Release
         env:
