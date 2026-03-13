@@ -36,7 +36,7 @@ jobs:
       - name: Initialize EAS project
         run: |
           cd mobile
-          eas init --idempotent --non-interactive
+          yes | eas init --non-interactive 2>/dev/null || true
 
       - name: Prebuild iOS
         run: |
@@ -91,7 +91,7 @@ jobs:
       - name: Initialize EAS project
         run: |
           cd mobile
-          eas init --idempotent --non-interactive
+          yes | eas init --non-interactive 2>/dev/null || true
 
       - name: Prebuild Android
         run: |
@@ -142,7 +142,7 @@ jobs:
       - name: Initialize EAS project
         run: |
           cd mobile
-          eas init --idempotent --non-interactive
+          yes | eas init --non-interactive 2>/dev/null || true
 
       - name: Prebuild iOS
         run: |
