@@ -20,6 +20,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Debug secrets
+        run: |
+          echo "DOCKERHUB_USERNAME set: ${{ secrets.DOCKERHUB_USERNAME != '' }}"
+          echo "DOCKERHUB_TOKEN set: ${{ secrets.DOCKERHUB_TOKEN != '' }}"
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
