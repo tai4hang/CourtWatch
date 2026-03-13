@@ -30,19 +30,6 @@ jobs:
           cd mobile
           npm ci
 
-      - name: Setup EAS CLI
-        run: npm install -g eas-cli
-
-      - name: Initialize EAS project
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: |
-          cd mobile
-          # Check if projectId exists in eas.json, if not initialize
-          if ! grep -q '"projectId"' mobile/eas.json 2>/dev/null; then
-            eas init --id startup-app --non-interactive || true
-          fi
-
       - name: Prebuild iOS
         run: |
           cd mobile
@@ -63,7 +50,6 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           cd mobile
-          # Get build ID from previous step or list builds
           BUILD_ID=$(eas build:list --platform ios --limit 1 --json | jq -r '.[0].id')
           if [ -n "$BUILD_ID" ]; then
             eas submit --platform ios --id $BUILD_ID --non-interactive
@@ -89,19 +75,6 @@ jobs:
         run: |
           cd mobile
           npm ci
-
-      - name: Setup EAS CLI
-        run: npm install -g eas-cli
-
-      - name: Initialize EAS project
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: |
-          cd mobile
-          # Check if projectId exists in eas.json, if not initialize
-          if ! grep -q '"projectId"' mobile/eas.json 2>/dev/null; then
-            eas init --id startup-app --non-interactive || true
-          fi
 
       - name: Prebuild Android
         run: |
@@ -146,19 +119,6 @@ jobs:
           cd mobile
           npm ci
 
-      - name: Setup EAS CLI
-        run: npm install -g eas-cli
-
-      - name: Initialize EAS project
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: |
-          cd mobile
-          # Check if projectId exists in eas.json, if not initialize
-          if ! grep -q '"projectId"' mobile/eas.json 2>/dev/null; then
-            eas init --id startup-app --non-interactive || true
-          fi
-
       - name: Prebuild iOS
         run: |
           cd mobile
@@ -179,5 +139,4 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           cd mobile
-          # Auto-submit after build
           eas submit --platform ios --profile production --non-interactive
