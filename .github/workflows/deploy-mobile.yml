@@ -29,6 +29,7 @@ jobs:
         uses: expo/expo-github-action@v8
         with:
           token: ${{ secrets.EXPO_TOKEN }}
+          expo-version: 0.17.13
 
       - name: Install dependencies
         run: |
@@ -81,6 +82,7 @@ jobs:
         uses: expo/expo-github-action@v8
         with:
           token: ${{ secrets.EXPO_TOKEN }}
+          expo-version: 0.17.13
 
       - name: Install dependencies
         run: |
@@ -129,6 +131,7 @@ jobs:
         uses: expo/expo-github-action@v8
         with:
           token: ${{ secrets.EXPO_TOKEN }}
+          expo-version: 0.17.13
 
       - name: Install dependencies
         run: |
