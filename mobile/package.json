@@ -69,6 +69,7 @@
     "submit:android": "eas submit -p android",
     "submit:ios": "eas submit -p ios"
   },
+  "// Build trigger: fix workflow": null,
   "dependencies": {
     "@react-navigation/native": "^6.1.9",
     "@react-navigation/native-stack": "^6.9.17",
