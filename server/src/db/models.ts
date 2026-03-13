@@ -51,6 +51,7 @@ export interface User {
 export interface Session {
   id: string;
   user_id: string;
+  access_token?: string | null;
   refresh_token: string;
   expires_at: Date;
   created_at: Date;
@@ -155,22 +156,41 @@ export const userModel = {
 
 // Session operations
 export const sessionModel = {
-  async create(data: { userId: string; refreshToken: string; expiresAt: Date }): Promise<Session> {
+  async create(data: { userId: string; accessToken?: string; refreshToken: string; expiresAt: Date }): Promise<Session> {
     const id = uuidv4();
     
     await run(
-      `INSERT INTO sessions (id, user_id, refresh_token, expires_at) VALUES (:1, :2, :3, :4)`,
-      [id, data.userId, data.refreshToken, data.expiresAt]
+      `INSERT INTO sessions (id, user_id, access_token, refresh_token, expires_at) VALUES (:1, :2, :3, :4, :5)`,
+      [id, data.userId, data.accessToken || null, data.refreshToken, data.expiresAt]
     );
 
     return {
       id,
       user_id: data.userId,
+      access_token: data.accessToken || null,
       refresh_token: data.refreshToken,
       expires_at: data.expiresAt,
       created_at: new Date(),
       updated_at: new Date(),
     };
+  },
+
+  async findByAccessToken(accessToken: string): Promise<User | null> {
+    const session = await executeOne<Session>(
+      `SELECT user_id, expires_at FROM sessions WHERE access_token = :1 AND expires_at > CURRENT_TIMESTAMP`,
+      [accessToken]
+    );
+    
+    if (!session) {
+      return null;
+    }
+    
+    const user = await executeOne<User>(
+      `SELECT id, email, name, password_hash, avatar_url, role, created_at, updated_at FROM users WHERE id = :1`,
+      [session.user_id]
+    );
+    
+    return user;
   },
 
   async findByRefreshToken(refreshToken: string): Promise<User | null> {

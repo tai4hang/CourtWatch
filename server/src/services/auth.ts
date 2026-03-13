@@ -80,10 +80,11 @@ export const authService = {
     const accessToken = uuidv4();
     const refreshToken = uuidv4();
 
-    // Create session (30 days expiry)
+    // Create session (30 days expiry) - store both tokens
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     await sessionModel.create({
       userId: user.id,
+      accessToken,
       refreshToken,
       expiresAt,
     });
@@ -136,6 +137,16 @@ export const authService = {
     if (!user) {
       return null;
     }
+    return user;
+  },
+
+  async validateToken(token: string): Promise<User | null> {
+    // Try accessToken first, then refreshToken
+    let user = await sessionModel.findByAccessToken(token);
+    if (user) {
+      return user;
+    }
+    user = await sessionModel.findByRefreshToken(token);
     return user;
   },
 };

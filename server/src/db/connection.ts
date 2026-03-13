@@ -317,6 +317,7 @@ async function initializeOracleSchema(pool: any) {
     `CREATE TABLE sessions (
       id VARCHAR2(255) PRIMARY KEY,
       user_id VARCHAR2(255) NOT NULL,
+      access_token VARCHAR2(500),
       refresh_token VARCHAR2(500) UNIQUE NOT NULL,
       expires_at TIMESTAMP NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -438,6 +439,7 @@ function initializeSqliteSchema() {
     CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL,
+      access_token TEXT,
       refresh_token TEXT UNIQUE NOT NULL,
       expires_at TEXT NOT NULL,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,

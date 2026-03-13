@@ -32,8 +32,8 @@ export async function authenticate(
       });
     }
     
-    // Validate token (in this implementation, we're using refresh token as access token)
-    const user = await authService.validateRefreshToken(token);
+    // Validate token - check both access and refresh tokens
+    const user = await authService.validateToken(token);
     
     if (!user) {
       return reply.status(401).send({
