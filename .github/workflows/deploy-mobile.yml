@@ -30,6 +30,9 @@ jobs:
           cd mobile
           npm ci
 
+      - name: Setup EAS CLI
+        run: npm install -g eas-cli
+
       - name: Prebuild iOS
         run: |
           cd mobile
@@ -76,6 +79,9 @@ jobs:
           cd mobile
           npm ci
 
+      - name: Setup EAS CLI
+        run: npm install -g eas-cli
+
       - name: Prebuild Android
         run: |
           cd mobile
@@ -118,6 +124,9 @@ jobs:
         run: |
           cd mobile
           npm ci
+
+      - name: Setup EAS CLI
+        run: npm install -g eas-cli
 
       - name: Prebuild iOS
         run: |
