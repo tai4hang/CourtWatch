@@ -1,0 +1,81 @@
+name: Deploy Mobile (Dev)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/**'
+
+jobs:
+  build-ios-dev:
+    name: Build iOS (Dev Simulator)
+    runs-on: macos-latest
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'mobile/package-lock.json'
+
+      - name: Install dependencies
+        run: |
+          cd mobile
+          npm ci
+
+      - name: Prebuild iOS
+        run: |
+          cd mobile
+          npx expo prebuild --platform ios --clean
+
+      - name: Build iOS with EAS
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          cd mobile
+          eas build --platform ios --profile development --non-interactive
+
+  build-android-dev:
+    name: Build Android (Dev APK)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'mobile/package-lock.json'
+
+      - name: Install dependencies
+        run: |
+          cd mobile
+          npm ci
+
+      - name: Prebuild Android
+        run: |
+          cd mobile
+          npx expo prebuild --platform android --clean
+
+      - name: Build Android with EAS
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          cd mobile
+          eas build --platform android --profile development --non-interactive
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: mobile/android/app/build/outputs/apk/**/*.apk
+          retention-days: 7
