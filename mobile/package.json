@@ -83,7 +83,7 @@
     "expo-constants": "~15.4.5",
     "expo-linking": "~6.2.2",
     "expo-notifications": "~0.27.1",
-    "expo-device": "~5.7.1",
+    "expo-device": "~5.9.3",
     "expo-font": "~11.10.2",
     "expo-splash-screen": "~0.26.4",
     "@expo/vector-icons": "^14.0.0",
@@ -106,4 +106,3 @@
   },
   "private": true
 }
-# trigger build Fri Mar 13 03:31:34 UTC 2026
