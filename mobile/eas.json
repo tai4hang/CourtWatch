@@ -22,9 +22,29 @@
         "simulator": true
       }
     },
-    "production": {}
+    "production": {
+      "distribution": "store",
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "ios": {
+        "scheme": "StartupApp"
+      }
+    }
   },
   "submit": {
-    "production": {}
+    "preview": {
+      "ios": {
+        "ascAppId": "ADD_YOUR_ASC_APP_ID_HERE"
+      }
+    },
+    "production": {
+      "ios": {
+        "ascAppId": "ADD_YOUR_ASC_APP_ID_HERE"
+      },
+      "android": {
+        "track": "internal"
+      }
+    }
   }
 }
