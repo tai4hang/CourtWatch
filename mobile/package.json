@@ -87,7 +87,7 @@
     "expo-linking": "~6.2.2",
     "expo-notifications": "~0.27.1",
     "expo-router": "~3.4.0",
-    "expo-secure-store": "^55.0.8",
+    "expo-secure-store": "~13.0.2",
     "expo-splash-screen": "~0.26.4",
     "expo-status-bar": "~1.11.1",
     "react": "18.2.0",
