@@ -175,6 +175,10 @@ async function initOracle() {
     throw new Error('ORACLE_CONNECT_STRING environment variable is not set');
   }
   
+  // Log first 20 chars for debugging (mask rest)
+  const maskedConnect = rawConnectString.length > 20 ? rawConnectString.substring(0, 20) + '...' : rawConnectString;
+  logger.info({ connectStringStart: maskedConnect, startsWithParen: rawConnectString.trim().startsWith('(description=') }, 'Oracle connect string config');
+  
   // =====================================================================
   // CRITICAL: Use TCPS (TLS) on port 1521, NOT TCP on port 1521!
   // 
