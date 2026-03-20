@@ -169,7 +169,7 @@ async function initOracle() {
   // Get Oracle connection config from environment
   const dbUser = process.env.ORACLE_USER || 'admin';
   const dbPassword = process.env.ORACLE_PASSWORD || 'Pokemongo612$';
-  const connectString = process.env.ORACLE_CONNECT_STRING || 
+  const rawConnectString = process.env.ORACLE_CONNECT_STRING || 
     'gc4a69fc3be605f_ub3ak3mtvbqjs41l_tp.adb.oraclecloud.com';
   
   // =====================================================================
@@ -182,12 +182,21 @@ async function initOracle() {
   // Port 1521 = TLS-only (SERVER auth) - no client certificate needed
   // Port 1522 = mTLS (MUTUAL auth) - client certificate/wallet required
   // =====================================================================
-  const connectDescriptor = `(description= 
+  
+  // Check if already a full descriptor (starts with "(description=")
+  let connectDescriptor: string;
+  if (rawConnectString.trim().startsWith('(description=')) {
+    connectDescriptor = rawConnectString;
+    logger.info('Using full Oracle connect descriptor from environment');
+  } else {
+    // Build the full TCPS descriptor
+    connectDescriptor = `(description= 
     (retry_count=20)(retry_delay=3)
     (address=(protocol=tcps)(port=1521)(host=adb.us-ashburn-1.oraclecloud.com))
-    (connect_data=(service_name=${connectString}))
+    (connect_data=(service_name=${rawConnectString}))
     (security=(ssl_server_dn_match=yes))
   )`;
+  }
 
   try {
     // Use thin mode (no Instant Client needed for TLS-only connections)
@@ -213,9 +222,10 @@ async function initOracle() {
     };
 
     const pool = await oracledb.createPool(poolConfig);
-    logger.info('Oracle database pool created (mTLS disabled, TCP connection)');
+    logger.info('Oracle database pool created (TLS-only, no wallet)');
     
     // Initialize schema (create tables if not exist) - with timeout
+    // IMPORTANT: Must complete before returning pool
     try {
       const schemaTimeout = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Schema init timeout')), 30000)
@@ -324,6 +334,44 @@ async function initializeOracleSchema(pool: any) {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )`,
+    `CREATE TABLE courts (
+      id VARCHAR2(255) PRIMARY KEY,
+      name VARCHAR2(500) NOT NULL,
+      address VARCHAR2(1000) NOT NULL,
+      latitude NUMBER NOT NULL,
+      longitude NUMBER NOT NULL,
+      total_courts NUMBER NOT NULL,
+      court_type VARCHAR2(20) NOT NULL,
+      surface VARCHAR2(20) NOT NULL,
+      has_lights NUMBER DEFAULT 0,
+      is_free NUMBER DEFAULT 0,
+      google_maps_url VARCHAR2(500),
+      notes CLOB,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE court_reports (
+      id VARCHAR2(255) PRIMARY KEY,
+      court_id VARCHAR2(255) NOT NULL,
+      user_id VARCHAR2(255) NOT NULL,
+      available_courts NUMBER DEFAULT 0,
+      queue_groups NUMBER DEFAULT 0,
+      wait_time_minutes NUMBER,
+      status VARCHAR2(20) NOT NULL,
+      report_type VARCHAR2(20) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (court_id) REFERENCES courts(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`,
+    `CREATE TABLE favorite_courts (
+      id VARCHAR2(255) PRIMARY KEY,
+      user_id VARCHAR2(255) NOT NULL,
+      court_id VARCHAR2(255) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (court_id) REFERENCES courts(id) ON DELETE CASCADE,
+      UNIQUE (user_id, court_id)
+    )`,
     `CREATE TABLE items (
       id VARCHAR2(255) PRIMARY KEY,
       user_id VARCHAR2(255) NOT NULL,
@@ -384,6 +432,9 @@ async function initializeOracleSchema(pool: any) {
   
   const indexStatements = [
     `CREATE INDEX idx_sessions_user_id ON sessions(user_id)`,
+    `CREATE INDEX idx_courts_location ON courts(latitude, longitude)`,
+    `CREATE INDEX idx_court_reports_court_id ON court_reports(court_id, created_at)`,
+    `CREATE INDEX idx_favorite_courts_user_id ON favorite_courts(user_id)`,
     `CREATE INDEX idx_items_user_id ON items(user_id)`,
     `CREATE INDEX idx_notifications_user_read ON notifications(user_id, read_status)`,
     `CREATE INDEX idx_activity_logs_user_id ON activity_logs(user_id)`,
@@ -445,6 +496,47 @@ function initializeSqliteSchema() {
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS courts (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      address TEXT NOT NULL,
+      latitude REAL NOT NULL,
+      longitude REAL NOT NULL,
+      total_courts INTEGER NOT NULL,
+      court_type TEXT NOT NULL CHECK (court_type IN ('indoor', 'outdoor', 'both')),
+      surface TEXT NOT NULL CHECK (surface IN ('hard', 'clay', 'grass', 'carpet')),
+      has_lights INTEGER DEFAULT 0,
+      is_free INTEGER DEFAULT 0,
+      google_maps_url TEXT,
+      notes TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS court_reports (
+      id TEXT PRIMARY KEY,
+      court_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      available_courts INTEGER DEFAULT 0,
+      queue_groups INTEGER DEFAULT 0,
+      wait_time_minutes INTEGER,
+      status TEXT NOT NULL CHECK (status IN ('available', 'partial', 'full')),
+      report_type TEXT NOT NULL CHECK (report_type IN ('availability', 'queue')),
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (court_id) REFERENCES courts(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS favorite_courts (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      court_id TEXT NOT NULL,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (court_id) REFERENCES courts(id) ON DELETE CASCADE,
+      UNIQUE (user_id, court_id)
     );
 
     CREATE TABLE IF NOT EXISTS items (
@@ -509,6 +601,9 @@ function initializeSqliteSchema() {
     );
 
     CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
+    CREATE INDEX IF NOT EXISTS idx_courts_location ON courts(latitude, longitude);
+    CREATE INDEX IF NOT EXISTS idx_court_reports_court_id ON court_reports(court_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_favorite_courts_user_id ON favorite_courts(user_id);
     CREATE INDEX IF NOT EXISTS idx_items_user_id ON items(user_id);
     CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, read_status);
     CREATE INDEX IF NOT EXISTS idx_activity_logs_user_id ON activity_logs(user_id);
@@ -662,6 +757,24 @@ export async function execute<T = any>(
     if (DB_TYPE === 'oracle') {
       // Oracle: Use native parameter binding with timeout
       // Oracle returns UPPERCASE column names and LOB objects
+      
+      // Convert SQLite LIMIT syntax to Oracle FETCH syntax before execution
+      let finalSql = sql;
+      const limitMatch = sql.match(/LIMIT\s+(\?|\d+)\s+OFFSET\s+(\?|\d+)/i);
+      if (limitMatch) {
+        // Extract limit and offset values - they should be in params array or literals
+        // For simplicity, we'll use positional params :1 for limit, :2 for offset
+        sql = sql.replace(/LIMIT\s+(\?|\d+)\s+OFFSET\s+(\?|\d+)/i, 'OFFSET :2 ROWS FETCH NEXT :1 ROWS ONLY');
+        logger.debug({ sql }, 'Converted SQLite LIMIT to Oracle FETCH');
+      }
+      
+      // Also handle just LIMIT without OFFSET (default offset to 0)
+      const limitOnlyMatch = sql.match(/LIMIT\s+(\?|\d+)/i);
+      if (limitOnlyMatch && !limitMatch) {
+        sql = sql.replace(/LIMIT\s+(\?|\d+)/i, 'FETCH FIRST $1 ROWS ONLY');
+        // Note: This needs to be converted with params, more complex - skip for now
+      }
+      
       const timeoutMs = 8000;
       const result = await Promise.race([
         connection.execute(sql, params, {
@@ -701,14 +814,25 @@ export async function execute<T = any>(
       
       // CONVERT ORACLE PAGINATION SYNTAX TO SQLITE
       // Oracle:  OFFSET :offset ROWS FETCH NEXT :limit ROWS ONLY
+      //          OR OFFSET n ROWS FETCH NEXT m ROWS ONLY
       // SQLite:  LIMIT :limit OFFSET :offset
       // Note: Must run AFTER parameter substitution to match numeric values
+      
+      // Handle placeholder format: OFFSET :2 ROWS FETCH NEXT :1 ROWS ONLY
+      const oraclePlaceholderMatch = finalSql.match(/OFFSET\s+:\d+\s+ROWS\s+FETCH\s+NEXT\s+:\d+\s+ROWS\s+ONLY/i);
+      if (oraclePlaceholderMatch) {
+        // Convert to SQLite: LIMIT :1 OFFSET :2 (swap order for SQLite)
+        finalSql = finalSql.replace(/OFFSET\s+:\d+\s+ROWS\s+FETCH\s+NEXT\s+:\d+\s+ROWS\s+ONLY/i, 'LIMIT :1 OFFSET :2');
+        logger.debug({ sql: finalSql }, 'Converted Oracle pagination (placeholders) to SQLite');
+      }
+      
+      // Handle numeric format: OFFSET 10 ROWS FETCH NEXT 20 ROWS ONLY
       const oracleOffsetMatch = finalSql.match(/OFFSET\s+(\d+)\s+ROWS\s+FETCH\s+NEXT\s+(\d+)\s+ROWS\s+ONLY/i);
       if (oracleOffsetMatch) {
         const offset = oracleOffsetMatch[1];
         const limit = oracleOffsetMatch[2];
         finalSql = finalSql.replace(oracleOffsetMatch[0], `LIMIT ${limit} OFFSET ${offset}`);
-        logger.debug({ sql: finalSql }, 'Converted Oracle pagination to SQLite');
+        logger.debug({ sql: finalSql }, 'Converted Oracle pagination (numeric) to SQLite');
       }
       
       logger.info({ sql: finalSql.substring(0, 60) }, 'Executing SQLite query');

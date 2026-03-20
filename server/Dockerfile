@@ -36,11 +36,8 @@ COPY --from=builder --chown=nodejs:nodejs /app/node_modules/sql.js/dist/sql-wasm
 COPY --chown=nodejs:nodejs entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Create wallet and data directories with proper permissions
-RUN mkdir -p /app/wallet /app/data && chown nodejs:nodejs /app/wallet /app/data
-
-# Embed Oracle wallet (copy from local or use placeholder)
-COPY --chown=nodejs:nodejs oracle_wallet_new /app/wallet
+# Create data directory with proper permissions
+RUN mkdir -p /app/data && chown nodejs:nodejs /app/data
 
 # Set environment
 ENV NODE_ENV=production
