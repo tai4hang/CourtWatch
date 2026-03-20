@@ -7,16 +7,26 @@ echo "=== Starting entrypoint ==="
 echo "Fetching Oracle credentials from OCI Secrets..."
 
 # Function to get secret value using instance principal auth
+# Secrets in OCI Vault are base64 encoded by default
 get_secret() {
     local secret_ocid="$1"
     if [ -z "$secret_ocid" ]; then
         echo "Warning: Secret OCID not provided"
         return 1
     fi
-    oci secrets secret get --secret-id "$secret_ocid" \
+    # Get the base64 payload and decode it
+    local payload
+    payload=$(oci vault secret get --secret-id "$secret_ocid" \
         --query 'data."secret-bundle"."contents"[0]."payload"' \
-        --raw-output \
-        --auth instance_principal | base64 -d
+        --raw-output 2>/dev/null)
+    
+    if [ -z "$payload" ]; then
+        echo "Warning: Empty secret value"
+        return 1
+    fi
+    
+    # Decode from base64
+    echo "$payload" | base64 -d
 }
 
 if [ -n "$OCI_SECRET_ORACLE_USER" ]; then
