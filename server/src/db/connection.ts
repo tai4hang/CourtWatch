@@ -166,11 +166,10 @@ let oracledb: any = null;
 async function initOracle() {
   oracledb = (await import('oracledb')).default;
 
-  // Get Oracle connection config from environment
-  const dbUser = process.env.ORACLE_USER || 'admin';
-  const dbPassword = process.env.ORACLE_PASSWORD || 'Pokemongo612$';
-  const rawConnectString = process.env.ORACLE_CONNECT_STRING || 
-    'gc4a69fc3be605f_ub3ak3mtvbqjs41l_tp.adb.oraclecloud.com';
+  // Get Oracle connection config from environment (must be set via OCI Secret in entrypoint)
+  const dbUser = process.env.ORACLE_USER;
+  const dbPassword = process.env.ORACLE_PASSWORD;
+  const rawConnectString = process.env.ORACLE_CONNECT_STRING;
   
   // =====================================================================
   // CRITICAL: Use TCPS (TLS) on port 1521, NOT TCP on port 1521!

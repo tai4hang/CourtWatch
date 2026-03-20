@@ -37,12 +37,6 @@ if [ -n "$OCI_SECRET_ORACLE_CONNECT_STRING" ]; then
     echo "✓ Oracle connect string loaded from secret"
 fi
 
-# Also check direct environment variable (for container instance env vars)
-if [ -n "$ORACLE_CONNECT_STRING" ]; then
-    export ORACLE_CONNECT_STRING
-    echo "✓ Oracle connect string from environment"
-fi
-
 echo "=== Starting application ==="
 
 # Execute the main command
