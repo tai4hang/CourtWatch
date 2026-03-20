@@ -169,15 +169,18 @@ async function initOracle() {
   // Get Oracle connection config from environment (must be set via OCI Secret in entrypoint)
   const dbUser = process.env.ORACLE_USER;
   const dbPassword = process.env.ORACLE_PASSWORD;
-  const rawConnectString = process.env.ORACLE_CONNECT_STRING || '';
+  let rawConnectString = (process.env.ORACLE_CONNECT_STRING || '').trim();
   
   if (!rawConnectString) {
     throw new Error('ORACLE_CONNECT_STRING environment variable is not set');
   }
   
-  // Log first 20 chars for debugging (mask rest)
-  const maskedConnect = rawConnectString.length > 20 ? rawConnectString.substring(0, 20) + '...' : rawConnectString;
-  logger.info({ connectStringStart: maskedConnect, startsWithParen: rawConnectString.trim().startsWith('(description=') }, 'Oracle connect string config');
+  // Remove all whitespace from the descriptor to prevent parsing errors
+  rawConnectString = rawConnectString.replace(/\s+/g, ' ').trim();
+  
+  // Log first 50 chars for debugging (mask rest)
+  const maskedConnect = rawConnectString.length > 50 ? rawConnectString.substring(0, 50) + '...' : rawConnectString;
+  logger.info({ connectStringStart: maskedConnect, startsWithParen: rawConnectString.startsWith('(description=') }, 'Oracle connect string config');
   
   // =====================================================================
   // CRITICAL: Use TCPS (TLS) on port 1521, NOT TCP on port 1521!
