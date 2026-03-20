@@ -7,8 +7,6 @@ import fastifyCookie from '@fastify/cookie';
 
 import { authRoutes } from './routes/auth.js';
 import { userRoutes } from './routes/users.js';
-import { itemRoutes } from './routes/items.js';
-import { billingRoutes } from './routes/billing.js';
 import { notificationRoutes } from './routes/notifications.js';
 import { healthRoutes } from './routes/health.js';
 import { courtRoutes } from './routes/courts.js';
@@ -75,8 +73,6 @@ export async function buildApp() {
   // API routes
   await app.register(authRoutes, { prefix: '/api/auth' });
   await app.register(userRoutes, { prefix: '/api/users' });
-  await app.register(itemRoutes, { prefix: '/api/items' });
-  await app.register(billingRoutes, { prefix: '/api/billing' });
   await app.register(notificationRoutes, { prefix: '/api/notifications' });
   await app.register(courtRoutes, { prefix: '/api/courts' });
 
