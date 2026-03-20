@@ -51,6 +51,7 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/courtwatch:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/courtwatch:v1
             ${{ secrets.DOCKERHUB_USERNAME }}/courtwatch:${{ steps.vars.outputs.tag }}
             ${{ secrets.DOCKERHUB_USERNAME }}/courtwatch:${{ steps.vars.outputs.sha }}
           cache-from: type=gha
