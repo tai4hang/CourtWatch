@@ -68,6 +68,42 @@ export interface Item {
   updated_at: Date;
 }
 
+export interface Court {
+  id: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  total_courts: number;
+  court_type: string;
+  surface: string;
+  has_lights: boolean;
+  is_free: boolean;
+  google_maps_url: string | null;
+  notes: string | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface FavoriteCourt {
+  id: string;
+  user_id: string;
+  court_id: string;
+  created_at: Date;
+}
+
+export interface CourtReport {
+  id: string;
+  court_id: string;
+  user_id: string;
+  available_courts: number | null;
+  queue_groups: number | null;
+  wait_time_minutes: number | null;
+  status: string;
+  report_type: string | null;
+  created_at: Date;
+}
+
 export interface Subscription {
   id: string;
   user_id: string;
@@ -291,6 +327,189 @@ export const itemModel = {
 
   async delete(id: string, userId: string): Promise<void> {
     await run('DELETE FROM items WHERE id = :1 AND user_id = :2', [id, userId]);
+  },
+};
+
+// Court operations (ADMIN.COURTS table)
+export const courtModel = {
+  async findAll(page = 1, limit = 20): Promise<Court[]> {
+    const offset = (page - 1) * limit;
+    return execute<Court>(
+      `SELECT * FROM courts ORDER BY name OFFSET :1 ROWS FETCH NEXT :2 ROWS ONLY`,
+      [offset, limit]
+    );
+  },
+
+  async findById(id: string): Promise<Court | null> {
+    return executeOne<Court>(
+      'SELECT * FROM courts WHERE id = :1',
+      [id]
+    );
+  },
+
+  async findNearby(lat: number, lng: number, radiusKm: number, limit = 20): Promise<(Court & { distance_km: number })[]> {
+    const latDelta = radiusKm / 111.0;
+    const lngDelta = radiusKm / (111.0 * Math.cos(lat * Math.PI / 180));
+    
+    return execute<Court & { distance_km: number }>(
+      `SELECT *, (
+        ((:1 - latitude) * (:1 - latitude) + ((:2 - longitude) * (:2 - longitude) / (COS(:1 * 3.14159 / 180) * COS(:1 * 3.14159 / 180)))) * 111.0 * 111.0
+      ) as distance_km
+      FROM courts
+      WHERE latitude BETWEEN :3 AND :4
+        AND longitude BETWEEN :5 AND :6
+      ORDER BY distance_km
+      LIMIT :7`,
+      [lat, lat, lat, lat, lng, lat - latDelta, lat + latDelta, lng - lngDelta, lng + lngDelta, limit]
+    );
+  },
+
+  async search(query: string, limit = 20): Promise<Court[]> {
+    return execute<Court>(
+      `SELECT * FROM courts WHERE name LIKE :1 OR address LIKE :1 ORDER BY name LIMIT :2`,
+      [`%${query}%`, limit]
+    );
+  },
+
+  async create(data: {
+    name: string;
+    address: string;
+    latitude: number;
+    longitude: number;
+    totalCourts: number;
+    courtType: string;
+    surface: string;
+    hasLights: boolean;
+    isFree: boolean;
+    googleMapsUrl?: string;
+    notes?: string;
+  }): Promise<Court> {
+    const id = uuidv4();
+    
+    await run(
+      `INSERT INTO courts (id, name, address, latitude, longitude, total_courts, court_type, surface, has_lights, is_free, google_maps_url, notes)
+       VALUES (:1, :2, :3, :4, :5, :6, :7, :8, :9, :10, :11, :12)`,
+      [id, data.name, data.address, data.latitude, data.longitude, data.totalCourts, data.courtType, data.surface, data.hasLights ? 1 : 0, data.isFree ? 1 : 0, data.googleMapsUrl || null, data.notes || null]
+    );
+
+    return {
+      id,
+      name: data.name,
+      address: data.address,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      total_courts: data.totalCourts,
+      court_type: data.courtType,
+      surface: data.surface,
+      has_lights: data.hasLights,
+      is_free: data.isFree,
+      google_maps_url: data.googleMapsUrl || null,
+      notes: data.notes || null,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+  },
+};
+
+// Favorite operations (ADMIN.FAVORITE_COURTS table)
+export const favoriteModel = {
+  async findByUserId(userId: string): Promise<(FavoriteCourt & { court: Court })[]> {
+    const favorites = await execute<FavoriteCourt>(
+      'SELECT * FROM favorite_courts WHERE user_id = :1 ORDER BY created_at DESC',
+      [userId]
+    );
+    
+    const result: (FavoriteCourt & { court: Court })[] = [];
+    for (const fav of favorites) {
+      const court = await courtModel.findById(fav.court_id);
+      if (court) {
+        result.push({ ...fav, court });
+      }
+    }
+    return result;
+  },
+
+  async findByUserAndCourt(userId: string, courtId: string): Promise<FavoriteCourt | null> {
+    return executeOne<FavoriteCourt>(
+      'SELECT * FROM favorite_courts WHERE user_id = :1 AND court_id = :2',
+      [userId, courtId]
+    );
+  },
+
+  async add(userId: string, courtId: string): Promise<FavoriteCourt> {
+    const existing = await this.findByUserAndCourt(userId, courtId);
+    if (existing) {
+      return existing;
+    }
+
+    const id = uuidv4();
+    await run(
+      'INSERT INTO favorite_courts (id, user_id, court_id) VALUES (:1, :2, :3)',
+      [id, userId, courtId]
+    );
+
+    return {
+      id,
+      user_id: userId,
+      court_id: courtId,
+      created_at: new Date(),
+    };
+  },
+
+  async remove(userId: string, courtId: string): Promise<void> {
+    await run(
+      'DELETE FROM favorite_courts WHERE user_id = :1 AND court_id = :2',
+      [userId, courtId]
+    );
+  },
+};
+
+// Court Report operations (ADMIN.COURT_REPORTS table)
+export const courtReportModel = {
+  async findByCourtId(courtId: string, limit = 20): Promise<CourtReport[]> {
+    return execute<CourtReport>(
+      `SELECT * FROM court_reports WHERE court_id = :1 ORDER BY created_at DESC LIMIT :2`,
+      [courtId, limit]
+    );
+  },
+
+  async findRecentByCourtId(courtId: string, hours = 2): Promise<CourtReport[]> {
+    return execute<CourtReport>(
+      `SELECT * FROM court_reports 
+       WHERE court_id = :1 AND created_at > SYSDATE - :2/24
+       ORDER BY created_at DESC`,
+      [courtId, hours]
+    );
+  },
+
+  async create(data: {
+    courtId: string;
+    userId: string;
+    availableCourts?: number;
+    queueGroups?: number;
+    waitTimeMinutes?: number;
+    status: string;
+    reportType?: string;
+  }): Promise<CourtReport> {
+    const id = uuidv4();
+    
+    await run(
+      `INSERT INTO court_reports (id, court_id, user_id, available_courts, queue_groups, wait_time_minutes, status, report_type)
+       VALUES (:1, :2, :3, :4, :5, :6, :7, :8)`,
+      [id, data.courtId, data.userId, data.availableCourts || null, data.queueGroups || null, data.waitTimeMinutes || null, data.status, data.reportType || null]
+    );
+
+    return {
+      id,
+      court_id: data.courtId,
+      user_id: data.userId,
+      available_courts: data.availableCourts || null,
+      queue_groups: data.queueGroups || null,
+      wait_time_minutes: data.waitTimeMinutes || null,
+      status: data.status,
+      report_type: data.reportType || null,
+      created_at: new Date(),
+    };
   },
 };
 

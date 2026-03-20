@@ -11,6 +11,7 @@ import { itemRoutes } from './routes/items.js';
 import { billingRoutes } from './routes/billing.js';
 import { notificationRoutes } from './routes/notifications.js';
 import { healthRoutes } from './routes/health.js';
+import { courtRoutes } from './routes/courts.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { logger } from './utils/logger.js';
 
@@ -77,6 +78,7 @@ export async function buildApp() {
   await app.register(itemRoutes, { prefix: '/api/items' });
   await app.register(billingRoutes, { prefix: '/api/billing' });
   await app.register(notificationRoutes, { prefix: '/api/notifications' });
+  await app.register(courtRoutes, { prefix: '/api/courts' });
 
   // 404 handler
   app.setNotFoundHandler({
