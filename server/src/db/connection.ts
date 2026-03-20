@@ -169,7 +169,11 @@ async function initOracle() {
   // Get Oracle connection config from environment (must be set via OCI Secret in entrypoint)
   const dbUser = process.env.ORACLE_USER;
   const dbPassword = process.env.ORACLE_PASSWORD;
-  const rawConnectString = process.env.ORACLE_CONNECT_STRING;
+  const rawConnectString = process.env.ORACLE_CONNECT_STRING || '';
+  
+  if (!rawConnectString) {
+    throw new Error('ORACLE_CONNECT_STRING environment variable is not set');
+  }
   
   // =====================================================================
   // CRITICAL: Use TCPS (TLS) on port 1521, NOT TCP on port 1521!
