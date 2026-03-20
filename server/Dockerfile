@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ COPY . .
 RUN npm run build
 
 # Stage 2: Production
-FROM --platform=$BUILDPLATFORM node:20-alpine AS production
+FROM node:20-alpine AS production
 
 WORKDIR /app
 
@@ -43,7 +43,6 @@ RUN mkdir -p /app/data && chown nodejs:nodejs /app/data
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV DB_TYPE=oracle
-# Use Thin mode - no Instant Client needed
 
 # Switch to non-root user
 USER nodejs
