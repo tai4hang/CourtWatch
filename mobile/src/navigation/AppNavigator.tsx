@@ -8,7 +8,8 @@ import { useAuthStore } from '../store/authStore';
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
 import DashboardScreen from '../screens/DashboardScreen';
-import ItemsListScreen from '../screens/ItemsListScreen';
+import CourtListScreen from '../screens/CourtListScreen';
+import FavoritesScreen from '../screens/FavoritesScreen';
 import ItemDetailScreen from '../screens/ItemDetailScreen';
 import CreateItemScreen from '../screens/CreateItemScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
@@ -28,7 +29,8 @@ export type AuthStackParamList = {
 
 export type MainTabParamList = {
   Dashboard: undefined;
-  Items: undefined;
+  CourtList: undefined;
+  Favorites: undefined;
   Notifications: undefined;
   Settings: undefined;
 };
@@ -71,11 +73,19 @@ function MainTabNavigator() {
         }}
       />
       <Tab.Screen 
-        name="Items" 
-        component={ItemsListScreen}
+        name="CourtList" 
+        component={CourtListScreen}
         options={{ 
-          tabBarLabel: 'Items',
-          tabBarIcon: ({ color, size }) => <TabIcon name="list" color={color} size={size} />,
+          tabBarLabel: 'Courts',
+          tabBarIcon: ({ color, size }) => <TabIcon name="tennis" color={color} size={size} />,
+        }}
+      />
+      <Tab.Screen 
+        name="Favorites" 
+        component={FavoritesScreen}
+        options={{ 
+          tabBarLabel: 'Favorites',
+          tabBarIcon: ({ color, size }) => <TabIcon name="heart" color={color} size={size} />,
         }}
       />
       <Tab.Screen 
@@ -139,7 +149,8 @@ import { Ionicons } from '@expo/vector-icons';
 function TabIcon({ name, color, size }: { name: string; color: string; size: number }) {
   const iconMap: Record<string, keyof typeof Ionicons.glyphMap> = {
     home: 'home',
-    list: 'list',
+    tennis: 'tennisball',
+    heart: 'heart',
     bell: 'notifications',
     settings: 'settings',
   };

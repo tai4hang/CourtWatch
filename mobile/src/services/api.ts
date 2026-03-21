@@ -20,42 +20,26 @@ class ApiClient {
   }
 
   private setupInterceptors() {
-    // Request interceptor - add auth token
+    // Request interceptor - add auth token (use try-catch)
     this.client.interceptors.request.use(
-      async (config: InternalAxiosRequestConfig) => {
-        const token = await SecureStore.getItemAsync('accessToken');
-        if (token && config.headers) {
-          config.headers.Authorization = `Bearer ${token}`;
+      async (config) => {
+        try {
+          const token = await SecureStore.getItemAsync('accessToken');
+          if (token && config.headers) {
+            config.headers.set('Authorization', `Bearer ${token}`, false);
+          }
+        } catch (e) {
+          // Ignore auth errors
         }
         return config;
       },
       (error) => Promise.reject(error)
     );
 
-    // Response interceptor - handle token refresh
+    // Response interceptor - just pass through (simplified for now)
     this.client.interceptors.response.use(
       (response) => response,
-      async (error: AxiosError) => {
-        const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
-
-        if (error.response?.status === 401 && !originalRequest._retry) {
-          originalRequest._retry = true;
-
-          try {
-            const newToken = await this.refreshToken();
-            if (newToken && originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${newToken}`;
-              return this.client(originalRequest);
-            }
-          } catch (refreshError) {
-            // Refresh failed, logout user
-            await this.logout();
-            throw refreshError;
-          }
-        }
-
-        return Promise.reject(error);
-      }
+      (error) => Promise.reject(error)
     );
   }
 
@@ -178,6 +162,52 @@ class ApiClient {
 
   async markAllNotificationsRead() {
     const response = await this.client.put('/notifications/read-all');
+    return response.data;
+  }
+
+  // Court endpoints
+  async getCourts(page = 1, limit = 20, search?: string) {
+    const response = await this.client.get('/courts', { params: { page, limit, search } });
+    return response.data;
+  }
+
+  async getNearbyCourts(lat: number, lng: number, radius = 10, limit = 20) {
+    const response = await this.client.get('/courts/nearby', { params: { lat, lng, radius, limit } });
+    return response.data;
+  }
+
+  async getCourt(id: string) {
+    const response = await this.client.get(`/courts/${id}`);
+    return response.data;
+  }
+
+  async getFavorites() {
+    const response = await this.client.get('/courts/favorites/me');
+    return response.data;
+  }
+
+  async addFavorite(courtId: string) {
+    const response = await this.client.post('/courts/favorites', { courtId });
+    return response.data;
+  }
+
+  async removeFavorite(courtId: string) {
+    const response = await this.client.delete(`/courts/favorites/${courtId}`);
+    return response.data;
+  }
+
+  async checkFavorite(courtId: string) {
+    const response = await this.client.get(`/courts/favorites/check/${courtId}`);
+    return response.data;
+  }
+
+  async reportCourt(data: { courtId: string; status: string; availableCourts?: number; queueGroups?: number; waitTimeMinutes?: number; reportType?: string }) {
+    const response = await this.client.post('/courts/report', data);
+    return response.data;
+  }
+
+  async getCourtReports(courtId: string, limit = 20) {
+    const response = await this.client.get(`/courts/${courtId}/reports`, { params: { limit } });
     return response.data;
   }
 }

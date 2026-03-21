@@ -55,8 +55,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (email: string, password: string) => {
     const response = await api.login(email, password);
     
-    await SecureStore.setItemAsync('accessToken', response.accessToken);
-    await SecureStore.setItemAsync('refreshToken', response.refreshToken);
+    const accessToken = String(response.accessToken || '');
+    const refreshToken = String(response.refreshToken || '');
+    
+    await SecureStore.setItemAsync('accessToken', accessToken);
+    await SecureStore.setItemAsync('refreshToken', refreshToken);
     
     set({
       user: response.user,
@@ -67,8 +70,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   register: async (email: string, password: string, name?: string) => {
     const response = await api.register(email, password, name);
     
-    await SecureStore.setItemAsync('accessToken', response.accessToken);
-    await SecureStore.setItemAsync('refreshToken', response.refreshToken);
+    const accessToken = String(response.accessToken || '');
+    const refreshToken = String(response.refreshToken || '');
+    
+    await SecureStore.setItemAsync('accessToken', accessToken);
+    await SecureStore.setItemAsync('refreshToken', refreshToken);
     
     set({
       user: response.user,

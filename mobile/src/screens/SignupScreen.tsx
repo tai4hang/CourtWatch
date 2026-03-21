@@ -3,14 +3,14 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-nativ
 import { useAuthStore } from '../store/authStore';
 
 export default function SignupScreen() {
-  const { signup } = useAuthStore();
+  const { register } = useAuthStore();
   const [name, setName] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
 
   const handleSignup = async () => {
     try {
-      await signup(name, email, password);
+      await register(email, password, name);
     } catch (error) {
       console.error('Signup failed:', error);
     }
