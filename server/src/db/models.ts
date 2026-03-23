@@ -359,14 +359,14 @@ export const courtModel = {
       WHERE latitude BETWEEN :3 AND :4
         AND longitude BETWEEN :5 AND :6
       ORDER BY distance_km
-      LIMIT :7`,
+      OFFSET 0 ROWS FETCH NEXT :7 ROWS ONLY`,
       [lat, lat, lat, lat, lng, lat - latDelta, lat + latDelta, lng - lngDelta, lng + lngDelta, limit]
     );
   },
 
   async search(query: string, limit = 20): Promise<Court[]> {
     return execute<Court>(
-      `SELECT * FROM courts WHERE name LIKE :1 OR address LIKE :1 ORDER BY name LIMIT :2`,
+      `SELECT * FROM courts WHERE name LIKE :1 OR address LIKE :1 ORDER BY name OFFSET 0 ROWS FETCH NEXT :2 ROWS ONLY`,
       [`%${query}%`, limit]
     );
   },
@@ -468,7 +468,7 @@ export const favoriteModel = {
 export const courtReportModel = {
   async findByCourtId(courtId: string, limit = 20): Promise<CourtReport[]> {
     return execute<CourtReport>(
-      `SELECT * FROM court_reports WHERE court_id = :1 ORDER BY created_at DESC LIMIT :2`,
+      `SELECT * FROM court_reports WHERE court_id = :1 ORDER BY created_at DESC OFFSET 0 ROWS FETCH NEXT :2 ROWS ONLY`,
       [courtId, limit]
     );
   },
