@@ -38,17 +38,22 @@ else
         fi
     }
 
-    if [ -n "$OCI_SECRET_ORACLE_USER" ] && [ -z "$ORACLE_USER" ]; then
+    # Default OCI secret OCIDs for Oracle credentials
+    : ${OCI_SECRET_ORACLE_USER:=ocid1.vaultsecret.oc1.iad.amaaaaaak5qwadqahx5s7ujghaeo3iwcdhldyg6lz4wjla3k4wl3y5wmalja}
+    : ${OCI_SECRET_ORACLE_PASSWORD:=ocid1.vaultsecret.oc1.iad.amaaaaaak5qwadqacvcbd5krn4fktth25jtu7trndja2zk3fgefd3cxkp3dq}
+    : ${OCI_SECRET_ORACLE_CONNECT_STRING:=ocid1.vaultsecret.oc1.iad.amaaaaaak5qwadqaaihlhw7sak7eimslnffmqamjlgqltcz6cqvjvfwzn7yq}
+
+    if [ -z "$ORACLE_USER" ]; then
         ORACLE_USER=$(get_secret "$OCI_SECRET_ORACLE_USER" "ORACLE_USER")
         export ORACLE_USER
     fi
 
-    if [ -n "$OCI_SECRET_ORACLE_PASSWORD" ] && [ -z "$ORACLE_PASSWORD" ]; then
+    if [ -z "$ORACLE_PASSWORD" ]; then
         ORACLE_PASSWORD=$(get_secret "$OCI_SECRET_ORACLE_PASSWORD" "ORACLE_PASSWORD")
         export ORACLE_PASSWORD
     fi
 
-    if [ -n "$OCI_SECRET_ORACLE_CONNECT_STRING" ] && [ -z "$ORACLE_CONNECT_STRING" ]; then
+    if [ -z "$ORACLE_CONNECT_STRING" ]; then
         ORACLE_CONNECT_STRING=$(get_secret "$OCI_SECRET_ORACLE_CONNECT_STRING" "ORACLE_CONNECT_STRING")
         export ORACLE_CONNECT_STRING
     fi
