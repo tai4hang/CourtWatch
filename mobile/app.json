@@ -18,20 +18,43 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.courtwatch.app",
-      "appleTeamId": "${APPLE_TEAM_ID}"
+      "appleTeamId": "${APPLE_TEAM_ID}",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.courtwatch.app"
-    },
-    "extra": {
-      "EXPO_PUBLIC_API_URL": "http://129.213.160.20:3000"
+      "package": "com.courtwatch.app",
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "POST_NOTIFICATIONS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#4F46E5"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "${EAS_PROJECT_ID}"
+      },
+      "EXPO_PUBLIC_API_URL": "http://129.213.160.20:3000"
     }
   }
 }
