@@ -1,76 +1,108 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { useAuthStore } from '../store/authStore';
+import { theme, styles as themeStyles } from '../theme';
 
-export default function LoginScreen() {
+export default function LoginScreen({ navigation }: any) {
   const { login } = useAuthStore();
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
+  const [error, setError] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
 
   const handleLogin = async () => {
+    setError('');
+
+    // Validate email
+    if (!email.trim()) {
+      setError('Please enter your email address');
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    // Validate password
+    if (!password) {
+      setError('Please enter your password');
+      return;
+    }
+
+    setLoading(true);
     try {
       await login(email, password);
-    } catch (error) {
-      console.error('Login failed:', error);
+    } catch (err: any) {
+      console.error('Login failed:', err);
+      // Show user-friendly error message
+      const message = err?.response?.data?.message || 'Login failed. Please check your credentials.';
+      setError(message);
+      Alert.alert('Login Failed', message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Welcome Back</Text>
+    <View style={themeStyles.container}>
+      <Text style={themeStyles.title}>Welcome Back</Text>
+      
+      {error ? <Text style={themeStyles.errorText}>{error}</Text> : null}
+      
       <TextInput
-        style={styles.input}
+        style={themeStyles.input}
         placeholder="Email"
+        placeholderTextColor="#999"
         value={email}
-        onChangeText={setEmail}
+        onChangeText={(text) => {
+          setEmail(text);
+          setError('');
+        }}
         autoCapitalize="none"
         keyboardType="email-address"
+        autoComplete="email"
       />
       <TextInput
-        style={styles.input}
+        style={themeStyles.input}
         placeholder="Password"
+        placeholderTextColor="#999"
         value={password}
-        onChangeText={setPassword}
+        onChangeText={(text) => {
+          setPassword(text);
+          setError('');
+        }}
         secureTextEntry
+        autoComplete="password"
       />
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Login</Text>
+      <TouchableOpacity 
+        style={[themeStyles.button, loading && styles.buttonDisabled]} 
+        onPress={handleLogin}
+        disabled={loading}
+      >
+        <Text style={themeStyles.buttonText}>{loading ? 'Logging in...' : 'Login'}</Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+        <Text style={themeStyles.linkText}>
+          Don't have an account? <Text style={styles.linkHighlight}>Sign Up</Text>
+        </Text>
       </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 30,
-    textAlign: 'center',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 15,
-    fontSize: 16,
-  },
-  button: {
-    backgroundColor: '#4F46E5',
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
+  linkHighlight: {
     fontWeight: '600',
+    textDecorationLine: 'underline' as const,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
 });

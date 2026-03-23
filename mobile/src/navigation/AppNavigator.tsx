@@ -2,7 +2,9 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
+import { theme } from '../theme';
 
 // Screens
 import LoginScreen from '../screens/LoginScreen';
@@ -60,8 +62,16 @@ function MainTabNavigator() {
   return (
     <Tab.Navigator
       screenOptions={{
-        tabBarActiveTintColor: '#4F46E5',
-        tabBarInactiveTintColor: '#6B7280',
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.textSecondary,
+        tabBarStyle: {
+          backgroundColor: theme.colors.surface,
+          borderTopColor: theme.colors.border,
+        },
+        headerStyle: {
+          backgroundColor: theme.colors.surface,
+        },
+        headerTintColor: theme.colors.text,
       }}
     >
       <Tab.Screen 
@@ -142,9 +152,6 @@ export default function AppNavigator() {
     </NavigationContainer>
   );
 }
-
-// Simple tab icon component
-import { Ionicons } from '@expo/vector-icons';
 
 function TabIcon({ name, color, size }: { name: string; color: string; size: number }) {
   const iconMap: Record<string, keyof typeof Ionicons.glyphMap> = {

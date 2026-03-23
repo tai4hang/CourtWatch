@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { api } from '../services/api';
+import { theme } from '../theme';
 
 interface Court {
   id: string;
@@ -73,7 +74,7 @@ export default function CourtListScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4F46E5" />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
@@ -103,7 +104,7 @@ export default function CourtListScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.colors.background,
   },
   loadingContainer: {
     flex: 1,
@@ -112,20 +113,22 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
   },
   searchInput: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.colors.background,
     borderRadius: 10,
     padding: 12,
     fontSize: 16,
-    color: '#1F2937',
+    color: theme.colors.text,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   list: {
     padding: 16,
   },
   courtCard: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -144,7 +147,7 @@ const styles = StyleSheet.create({
   courtName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
+    color: theme.colors.text,
     flex: 1,
   },
   badge: {
@@ -164,7 +167,7 @@ const styles = StyleSheet.create({
   },
   courtAddress: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.colors.textSecondary,
     marginBottom: 8,
   },
   courtInfo: {
@@ -174,6 +177,6 @@ const styles = StyleSheet.create({
   },
   courtInfoText: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: theme.colors.textSecondary,
   },
 });

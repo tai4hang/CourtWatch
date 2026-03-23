@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator }
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../services/api';
+import { theme } from '../theme';
 
 interface FavoriteCourt {
   id: string;
@@ -75,7 +76,7 @@ export default function FavoritesScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4F46E5" />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
@@ -83,7 +84,7 @@ export default function FavoritesScreen() {
   if (favorites.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Ionicons name="heart-outline" size={64} color="#9CA3AF" />
+        <Ionicons name="heart-outline" size={64} color={theme.colors.textSecondary} />
         <Text style={styles.emptyText}>No favorites yet</Text>
         <Text style={styles.emptySubtext}>Tap the heart on a court to add it to your favorites</Text>
       </View>
@@ -106,7 +107,7 @@ export default function FavoritesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.colors.background,
   },
   loadingContainer: {
     flex: 1,
@@ -122,12 +123,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#6B7280',
+    color: theme.colors.textSecondary,
     marginTop: 16,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     marginTop: 8,
   },
@@ -135,7 +136,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   courtCard: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -154,12 +155,12 @@ const styles = StyleSheet.create({
   courtName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
+    color: theme.colors.text,
     flex: 1,
   },
   courtAddress: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.colors.textSecondary,
     marginBottom: 8,
   },
   courtInfo: {
@@ -169,6 +170,6 @@ const styles = StyleSheet.create({
   },
   courtInfoText: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: theme.colors.textSecondary,
   },
 });

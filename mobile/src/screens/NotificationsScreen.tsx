@@ -1,23 +1,34 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import ScreenContainer from '../components/ScreenContainer';
+import { theme, styles as themeStyles } from '../theme';
 
 export default function NotificationsScreen() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Notifications</Text>
-    </View>
+    <ScreenContainer>
+      <View style={styles.content}>
+        <Text style={themeStyles.title}>Notifications</Text>
+        <View style={styles.card}>
+          <Text style={styles.cardText}>No notifications yet</Text>
+        </View>
+      </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+  content: {
+    padding: 20,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  card: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    padding: 20,
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  cardText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
   },
 });
