@@ -9,8 +9,8 @@ import { theme } from '../theme';
 // Screens
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
-import DashboardScreen from '../screens/DashboardScreen';
 import CourtListScreen from '../screens/CourtListScreen';
+import CourtDetailScreen from '../screens/CourtDetailScreen';
 import FavoritesScreen from '../screens/FavoritesScreen';
 import ItemDetailScreen from '../screens/ItemDetailScreen';
 import CreateItemScreen from '../screens/CreateItemScreen';
@@ -30,7 +30,6 @@ export type AuthStackParamList = {
 };
 
 export type MainTabParamList = {
-  Dashboard: undefined;
   CourtList: undefined;
   Favorites: undefined;
   Notifications: undefined;
@@ -42,6 +41,7 @@ export type MainStackParamList = {
   ItemDetail: { itemId: string };
   CreateItem: undefined;
   Subscription: undefined;
+  CourtDetail: { courtId: string };
 };
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
@@ -74,14 +74,6 @@ function MainTabNavigator() {
         headerTintColor: theme.colors.text,
       }}
     >
-      <Tab.Screen 
-        name="Dashboard" 
-        component={DashboardScreen}
-        options={{ 
-          tabBarLabel: 'Home',
-          tabBarIcon: ({ color, size }) => <TabIcon name="home" color={color} size={size} />,
-        }}
-      />
       <Tab.Screen 
         name="CourtList" 
         component={CourtListScreen}
@@ -129,6 +121,7 @@ function MainNavigator() {
       <MainStack.Screen name="ItemDetail" component={ItemDetailScreen} />
       <MainStack.Screen name="CreateItem" component={CreateItemScreen} options={{ title: 'New Item' }} />
       <MainStack.Screen name="Subscription" component={SubscriptionScreen} options={{ title: 'Subscription' }} />
+      <MainStack.Screen name="CourtDetail" component={CourtDetailScreen} options={{ title: 'Court Details' }} />
     </MainStack.Navigator>
   );
 }

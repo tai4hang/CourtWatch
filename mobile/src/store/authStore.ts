@@ -43,7 +43,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const token = await SecureStore.getItemAsync('accessToken');
       if (token) {
-        await get().fetchUser();
+        try {
+          await get().fetchUser();
+        } catch (err: any) {
+          // Token invalid/expired - clear and re-throw to set isAuthenticated false
+          console.warn('Token invalid, clearing auth state');
+          await SecureStore.deleteItemAsync('accessToken');
+          await SecureStore.deleteItemAsync('refreshToken');
+        }
       }
     } catch (error) {
       console.error('Failed to initialize auth:', error);
@@ -65,6 +72,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       user: response.user,
       isAuthenticated: true,
     });
+    
+    // Fetch full user data after login
+    await get().fetchUser();
   },
 
   register: async (email: string, password: string, name?: string) => {
@@ -102,18 +112,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   fetchUser: async () => {
-    try {
-      const { user } = await api.getMe();
-      const { subscription } = await api.getSubscription();
-      
-      set({
-        user,
-        subscription: subscription || null,
-        isAuthenticated: true,
-      });
-    } catch (error) {
-      console.error('Failed to fetch user:', error);
-      await get().logout();
-    }
+    const { user } = await api.getMe();
+    const { subscription } = await api.getSubscription();
+    
+    set({
+      user,
+      subscription: subscription || null,
+      isAuthenticated: true,
+    });
   },
 }));
