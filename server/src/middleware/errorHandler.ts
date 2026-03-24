@@ -43,6 +43,15 @@ export function errorHandler(
     });
   }
 
+  // Custom app errors with statusCode
+  if (error.statusCode && error.statusCode < 500) {
+    return reply.status(error.statusCode).send({
+      error: error.name,
+      message: error.message,
+      statusCode: error.statusCode,
+    });
+  }
+
   // Default error
   const statusCode = error.statusCode || 500;
   const message = error.message || 'Internal Server Error';

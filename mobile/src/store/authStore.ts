@@ -43,7 +43,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const token = await SecureStore.getItemAsync('accessToken');
       if (token) {
-        await get().fetchUser();
+        try {
+          await get().fetchUser();
+        } catch (err: any) {
+          // Token invalid/expired - clear and re-throw to set isAuthenticated false
+          console.warn('Token invalid, clearing auth state');
+          await SecureStore.deleteItemAsync('accessToken');
+          await SecureStore.deleteItemAsync('refreshToken');
+        }
       }
     } catch (error) {
       console.error('Failed to initialize auth:', error);
@@ -55,20 +62,33 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (email: string, password: string) => {
     const response = await api.login(email, password);
     
-    await SecureStore.setItemAsync('accessToken', response.accessToken);
-    await SecureStore.setItemAsync('refreshToken', response.refreshToken);
+    const accessToken = String(response.accessToken || '');
+    const refreshToken = String(response.refreshToken || '');
+    
+    await SecureStore.setItemAsync('accessToken', accessToken);
+    await SecureStore.setItemAsync('refreshToken', refreshToken);
     
     set({
       user: response.user,
       isAuthenticated: true,
     });
+    
+    // Fetch full user data after login (catch to not break login if it fails)
+    try {
+      await get().fetchUser();
+    } catch (e) {
+      console.log('fetchUser failed, using login response user');
+    }
   },
 
   register: async (email: string, password: string, name?: string) => {
     const response = await api.register(email, password, name);
     
-    await SecureStore.setItemAsync('accessToken', response.accessToken);
-    await SecureStore.setItemAsync('refreshToken', response.refreshToken);
+    const accessToken = String(response.accessToken || '');
+    const refreshToken = String(response.refreshToken || '');
+    
+    await SecureStore.setItemAsync('accessToken', accessToken);
+    await SecureStore.setItemAsync('refreshToken', refreshToken);
     
     set({
       user: response.user,
@@ -96,18 +116,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   fetchUser: async () => {
-    try {
-      const { user } = await api.getMe();
-      const { subscription } = await api.getSubscription();
-      
-      set({
-        user,
-        subscription: subscription || null,
-        isAuthenticated: true,
-      });
-    } catch (error) {
-      console.error('Failed to fetch user:', error);
-      await get().logout();
-    }
+    const { user } = await api.getMe();
+    const { subscription } = await api.getSubscription();
+    
+    set({
+      user,
+      subscription: subscription || null,
+      isAuthenticated: true,
+    });
   },
 }));
