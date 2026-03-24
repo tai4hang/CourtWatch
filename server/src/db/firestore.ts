@@ -21,6 +21,9 @@ let app: App | null = null;
 export function initFirestore(): Firestore {
   if (db) return db;
 
+  // Get GCP project from env or use default
+  const projectId = process.env.GCP_PROJECT || process.env.GCLOUD_PROJECT;
+
   // Initialize Firebase Admin if not already initialized
   if (getApps().length === 0) {
     const credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
@@ -30,16 +33,19 @@ export function initFirestore(): Firestore {
       const serviceAccount = require(credentialsPath);
       app = initializeApp({
         credential: cert(serviceAccount),
+        projectId: projectId,
       });
     } else {
-      // Use default credentials (Cloud Run, GKE, etc.)
-      app = initializeApp();
+      // Use default credentials (Cloud Run, GKE, etc.) - must specify projectId
+      app = initializeApp({
+        projectId: projectId,
+      });
     }
   } else {
     app = getApps()[0];
   }
 
-  db = getApp().firestore();
+  db = app.firestore();
   
   // Enable timestamps in snapshots
   db.settings({ timestampsInSnapshots: true });
