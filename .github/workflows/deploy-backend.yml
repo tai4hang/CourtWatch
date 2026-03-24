@@ -1,4 +1,4 @@
-name: Deploy Backend
+name: Deploy Backend to Google Cloud Run
 
 on:
   push:
@@ -9,11 +9,11 @@ on:
 
 permissions:
   contents: read
-  packages: write
+  id-token: write  # Required for GCP authentication
 
 jobs:
-  build-and-push:
-    name: Build and Push Docker Image
+  deploy:
+    name: Deploy to Cloud Run
     runs-on: ubuntu-latest
     environment: production
 
@@ -21,19 +21,41 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          platforms: arm64
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Build TypeScript
+        working-directory: server
+        run: |
+          npm ci
+          npm run build
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Create Artifact Registry repository
+        run: |
+          gcloud artifacts repositories create courtwatch \
+            --repository-format=docker \
+            --location=northamerica-northeast2 \
+            --description="CourtWatch Docker images" \
+            --quiet 2>/dev/null || true
+
+      - name: Configure Docker Auth
+        run: gcloud auth configure-docker northamerica-northeast2-docker.pkg.dev
+
+      - name: Get repository name
+        id: repo
+        run: echo "REPO=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]' | sed 's/.*\///')" >> $GITHUB_OUTPUT
 
       - name: Generate tags
         id: vars
@@ -42,16 +64,50 @@ jobs:
           SHA_SHORT=$(echo ${{ github.sha }} | cut -c1-7)
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
           echo "sha=${SHA_SHORT}" >> $GITHUB_OUTPUT
+          echo "repo=${{ steps.repo.outputs.REPO }}" >> $GITHUB_OUTPUT
 
-      - name: Build and push
-        uses: docker/build-push-action@v5
-        with:
-          context: ./server
-          platforms: linux/arm64
-          push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/courtwatch:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/courtwatch:${{ steps.vars.outputs.tag }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/courtwatch:${{ steps.vars.outputs.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Build and push Docker image
+        working-directory: server
+        run: |
+          # Build for AMD64 (Cloud Run requirement)
+          docker build \
+            --tag northamerica-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ steps.vars.outputs.repo }}:${{ steps.vars.outputs.tag }} \
+            --tag northamerica-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ steps.vars.outputs.repo }}:${{ steps.vars.outputs.sha }} \
+            --tag northamerica-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ steps.vars.outputs.repo }}:latest \
+            --platform linux/amd64 \
+            .
+          
+          docker push northamerica-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ steps.vars.outputs.repo }}:${{ steps.vars.outputs.tag }}
+          docker push northamerica-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ steps.vars.outputs.repo }}:latest
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ steps.vars.outputs.repo }}-api \
+            --image northamerica-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ steps.vars.outputs.repo }}:${{ steps.vars.outputs.tag }} \
+            --platform managed \
+            --region northamerica-northeast2 \
+            --allow-unauthenticated \
+            --set-env-vars DB_TYPE=firestore \
+            --service-account ${{ secrets.GCP_SERVICE_ACCOUNT }} \
+            --memory 512Mi \
+            --cpu 1 \
+            --min-instances 0 \
+            --max-instances 10 \
+            --concurrency 80
+
+      - name: Get Cloud Run URL
+        id: cloudrun
+        run: |
+          URL=$(gcloud run services describe ${{ steps.vars.outputs.repo }}-api \
+            --platform managed \
+            --region northamerica-northeast2 \
+            --format 'value(status.url)')
+          echo "url=${URL}" >> $GITHUB_OUTPUT
+
+      - name: Summary
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** ${{ steps.vars.outputs.repo }}:${{ steps.vars.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Service URL:** ${{ steps.cloudrun.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** Deployed successfully ✅" >> $GITHUB_STEP_SUMMARY
