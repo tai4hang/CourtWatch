@@ -88,7 +88,7 @@ jobs:
             --platform managed \
             --region northamerica-northeast2 \
             --allow-unauthenticated \
-            --set-env-vars DB_TYPE=sqlite \
+            --set-env-vars DB_TYPE=firestore,GCP_PROJECT=${{ secrets.GCP_PROJECT_ID }} \
             --service-account ${{ secrets.GCP_SERVICE_ACCOUNT }} \
             --memory 512Mi \
             --cpu 1 \

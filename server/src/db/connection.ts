@@ -141,6 +141,7 @@
 import { logger } from '../utils/logger.js';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { initFirestore } from './firestore.js';
 
 // Database type configuration - controls which database is used
 // Set DB_TYPE=oracle for Oracle Cloud, DB_TYPE=sqlite (default) for local
@@ -617,7 +618,9 @@ let pool: any = null;
 export async function initDb(): Promise<void> {
   logger.info(`Initializing ${DB_TYPE} database...`);
   
-  if (DB_TYPE === 'oracle') {
+  if (DB_TYPE === 'firestore') {
+    pool = initFs();
+  } else if (DB_TYPE === 'oracle') {
     pool = await initOracle();
   } else {
     pool = await initSqlite();
