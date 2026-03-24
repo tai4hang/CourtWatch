@@ -15,14 +15,15 @@ export async function healthRoutes(fastify: FastifyInstance) {
   fastify.get('/health/ready', async () => {
     const checks: Record<string, { status: string; latency?: number }> = {};
 
-    // Database check
+    // Firestore database check
     const dbStart = Date.now();
     try {
-      const connection = await getDbConnection();
-      await connection.execute('SELECT 1 FROM DUAL');
-      await connection.close();
+      const db = getDbConnection();
+      // Try to get a simple document to verify connection
+      await db.collection('_health').doc('check').get();
       checks.database = { status: 'ok', latency: Date.now() - dbStart };
-    } catch {
+    } catch (err) {
+      console.error('DB health check error:', err);
       checks.database = { status: 'error' };
     }
 
