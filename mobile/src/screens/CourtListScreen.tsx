@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { api } from '../services/api';
 import { theme } from '../theme';
 
@@ -8,6 +8,7 @@ interface Court {
   id: string;
   name: string;
   address: string;
+  city?: string;
   latitude: number;
   longitude: number;
   totalCourts: number;
@@ -15,17 +16,27 @@ interface Court {
   surface: string;
   hasLights: boolean;
   isFree: boolean;
+  status?: 'green' | 'amber' | 'red';
 }
 
 export default function CourtListScreen() {
   const navigation = useNavigation<any>();
   const [courts, setCourts] = useState<Court[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    loadCourts();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadCourts();
+    }, [])
+  );
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadCourts();
+    setRefreshing(false);
+  };
 
   const loadCourts = async () => {
     try {
@@ -43,18 +54,33 @@ export default function CourtListScreen() {
     court.address.toLowerCase().includes(search.toLowerCase())
   );
 
+  const getStatusColor = (status?: string) => {
+    switch (status) {
+      case 'green': return '#4CAF50';
+
+      case 'amber': return '#FF9800';
+      case 'red': return '#F44336';
+      default: return '#9E9E9E';
+    }
+  };
+
   const renderCourt = ({ item }: { item: Court }) => (
     <TouchableOpacity
       style={styles.courtCard}
       onPress={() => navigation.navigate('CourtDetail', { courtId: item.id })}
     >
       <View style={styles.courtHeader}>
-        <Text style={styles.courtName}>{item.name}</Text>
-        <View style={[styles.badge, item.isFree ? styles.freeBadge : styles.paidBadge]}>
-          <Text style={styles.badgeText}>{item.isFree ? 'Free' : 'Paid'}</Text>
+        <View style={styles.nameRow}>
+          <Text style={styles.courtName}>{item.name}</Text>
+          {item.hasLights && (
+            <Text style={styles.lightIcon}>💡</Text>
+          )}
+        </View>
+        <View style={styles.statusContainer}>
+          <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
         </View>
       </View>
-      <Text style={styles.courtAddress}>{item.address}</Text>
+      <Text style={styles.courtAddress}>{item.city ? `${item.city}, ${item.address}` : item.address}</Text>
       <View style={styles.courtInfo}>
         <Text style={styles.courtInfoText}>{item.totalCourts} courts</Text>
         <Text style={styles.courtInfoText}>•</Text>
@@ -96,6 +122,14 @@ export default function CourtListScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[theme.colors.primary]}
+            tintColor={theme.colors.primary}
+          />
+        }
       />
     </View>
   );
@@ -150,20 +184,24 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     flex: 1,
   },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
-  freeBadge: {
-    backgroundColor: '#D1FAE5',
+  lightIcon: {
+    marginLeft: 6,
+    fontSize: 14,
   },
-  paidBadge: {
-    backgroundColor: '#FEE2E2',
+  statusContainer: {
+    marginLeft: 8,
   },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: '600',
+  statusDot: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: '#fff',
   },
   courtAddress: {
     fontSize: 14,
@@ -173,7 +211,7 @@ const styles = StyleSheet.create({
   courtInfo: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 4,
+    marginTop: 4,
   },
   courtInfoText: {
     fontSize: 12,

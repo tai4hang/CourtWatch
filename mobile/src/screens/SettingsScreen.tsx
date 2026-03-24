@@ -4,6 +4,8 @@ import { useAuthStore } from '../store/authStore';
 import ScreenContainer from '../components/ScreenContainer';
 import { theme, styles as themeStyles } from '../theme';
 
+const APP_VERSION = '1.0.0';
+
 export default function SettingsScreen() {
   const { logout, user } = useAuthStore();
 
@@ -13,7 +15,7 @@ export default function SettingsScreen() {
       'Are you sure you want to logout?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Logout', style: 'destructive', onPress: logout },
+        { text: 'Logout', style: 'destructive', onPress: () => logout()},
       ]
     );
   };
@@ -21,11 +23,14 @@ export default function SettingsScreen() {
   return (
     <ScreenContainer>
       <View style={styles.content}>
-        <Text style={themeStyles.title}>Settings</Text>
-        
         <View style={styles.card}>
           <Text style={styles.label}>Email</Text>
           <Text style={styles.value}>{user?.email || 'Not logged in'}</Text>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.label}>Version</Text>
+          <Text style={styles.value}>{APP_VERSION}</Text>
         </View>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, Image } from 'react-native';
 import { useAuthStore } from '../store/authStore';
 import { theme, styles as themeStyles } from '../theme';
 
@@ -51,6 +51,9 @@ export default function LoginScreen({ navigation }: any) {
 
   return (
     <View style={themeStyles.container}>
+      <View style={styles.logoContainer}>
+        <Image source={require('../../assets/app-logo.png')} style={styles.logo} resizeMode="contain" />
+      </View>
       <Text style={themeStyles.title}>Welcome Back</Text>
       
       {error ? <Text style={themeStyles.errorText}>{error}</Text> : null}
@@ -98,6 +101,16 @@ export default function LoginScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
+  logoContainer: {
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  logo: {
+    width: 240,
+    height: 240,
+    marginBottom: 10,
+    resizeMode: 'contain',
+  },
   linkHighlight: {
     fontWeight: '600',
     textDecorationLine: 'underline' as const,

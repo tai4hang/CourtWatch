@@ -2,10 +2,83 @@ import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'ax
 import * as SecureStore from 'expo-secure-store';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+const USE_MOCK = process.env.EXPO_PUBLIC_USE_MOCK === 'true';
+
+// Mock data
+const MOCK_COURTS = [
+  {
+    id: '1',
+    name: 'Central Park Tennis Center',
+    address: '100 Central Park West, New York, NY 10023',
+    city: 'New York',
+    latitude: 40.7812,
+    longitude: -73.9745,
+    totalCourts: 12,
+    courtType: 'outdoor',
+    surface: 'hard',
+    hasLights: true,
+    isFree: true,
+    status: 'green',
+    lastReported: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 mins ago
+  },
+  {
+    id: '2',
+    name: 'Riverside Park Tennis',
+    address: 'Riverside Park, New York, NY 10025',
+    city: 'New York',
+    latitude: 40.8024,
+    longitude: -73.9711,
+    totalCourts: 6,
+    courtType: 'outdoor',
+    surface: 'hard',
+    hasLights: false,
+    isFree: true,
+    status: 'amber',
+  },
+  {
+    id: '3',
+    name: 'Midtown Tennis Center',
+    address: '341 E 43rd St, New York, NY 10017',
+    city: 'New York',
+    latitude: 40.7489,
+    longitude: -73.968,
+    totalCourts: 8,
+    courtType: 'indoor',
+    surface: 'hard',
+    hasLights: true,
+    isFree: true,
+    status: 'amber',
+  },
+  {
+    id: '4',
+    name: 'Brooklyn Bridge Park Courts',
+    address: 'Brooklyn Bridge Park, Brooklyn, NY 11201',
+    city: 'Brooklyn',
+    latitude: 40.7024,
+    longitude: -73.9969,
+    totalCourts: 4,
+    courtType: 'outdoor',
+    surface: 'clay',
+    hasLights: true,
+    isFree: true,
+    status: 'red',
+  },
+];
+
+const MOCK_USER = {
+  id: 'mock-user-1',
+  email: 'demo@courtwatch.app',
+  name: 'Demo User',
+  avatar_url: null,
+  role: 'USER',
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+};
 
 class ApiClient {
   private client: AxiosInstance;
   private refreshPromise: Promise<string | null> | null = null;
+  private mockToken: string = 'mock-token-123';
 
   constructor() {
     this.client = axios.create({
@@ -20,23 +93,19 @@ class ApiClient {
   }
 
   private setupInterceptors() {
-    // Request interceptor - add auth token (use try-catch)
     this.client.interceptors.request.use(
       async (config) => {
         try {
-          const token = await SecureStore.getItemAsync('accessToken');
+          const token = await SecureStore.getItemAsync('accessToken') || this.mockToken;
           if (token && config.headers) {
             config.headers.set('Authorization', `Bearer ${token}`, false);
           }
-        } catch (e) {
-          // Ignore auth errors
-        }
+        } catch (e) {}
         return config;
       },
       (error) => Promise.reject(error)
     );
 
-    // Response interceptor - just pass through (simplified for now)
     this.client.interceptors.response.use(
       (response) => response,
       (error) => Promise.reject(error)
@@ -44,170 +113,173 @@ class ApiClient {
   }
 
   private async refreshToken(): Promise<string | null> {
-    // Prevent multiple refresh requests
     if (this.refreshPromise) {
       return this.refreshPromise;
     }
-
     this.refreshPromise = (async () => {
       try {
-        const refreshToken = await SecureStore.getItemAsync('refreshToken');
-        if (!refreshToken) return null;
-
-        const response = await axios.post(`${API_BASE_URL}/api/auth/refresh`, {
-          refreshToken,
-        });
-
-        const { accessToken } = response.data;
-        await SecureStore.setItemAsync('accessToken', accessToken);
-        return accessToken;
+        const response = await this.client.post('/auth/refresh');
+        return response.data.accessToken;
       } catch {
         return null;
       } finally {
         this.refreshPromise = null;
       }
     })();
-
     return this.refreshPromise;
   }
 
-  async logout() {
-    try {
-      await SecureStore.deleteItemAsync('accessToken');
-      await SecureStore.deleteItemAsync('refreshToken');
-    } catch {
-      // Ignore errors during logout
-    }
-  }
-
-  // Auth endpoints
-  async register(email: string, password: string, name?: string) {
-    const response = await this.client.post('/auth/register', { email, password, name });
-    return response.data;
-  }
-
+  // Auth methods
   async login(email: string, password: string) {
+    if (USE_MOCK) {
+      return { user: MOCK_USER, accessToken: this.mockToken };
+    }
     const response = await this.client.post('/auth/login', { email, password });
     return response.data;
   }
 
-  async verifyToken() {
-    const response = await this.client.get('/auth/verify');
+  async register(email: string, password: string, name: string) {
+    if (USE_MOCK) {
+      return { user: { ...MOCK_USER, email, name }, accessToken: this.mockToken };
+    }
+    const response = await this.client.post('/auth/register', { email, password, name });
     return response.data;
   }
 
-  // User endpoints
+  async getProfile() {
+    if (USE_MOCK) {
+      return { user: MOCK_USER };
+    }
+    const response = await this.client.get('/auth/me');
+    return response.data;
+  }
+
   async getMe() {
-    const response = await this.client.get('/users/me');
-    return response.data;
-  }
-
-  async updateMe(data: { name?: string; avatarUrl?: string }) {
-    const response = await this.client.put('/users/me', data);
-    return response.data;
-  }
-
-  // Items endpoints
-  async getItems(page = 1, limit = 20) {
-    const response = await this.client.get('/items', { params: { page, limit } });
-    return response.data;
-  }
-
-  async getItem(id: string) {
-    const response = await this.client.get(`/items/${id}`);
-    return response.data;
-  }
-
-  async createItem(data: { title: string; description?: string; metadata?: object }) {
-    const response = await this.client.post('/items', data);
-    return response.data;
-  }
-
-  async updateItem(id: string, data: { title?: string; description?: string; metadata?: object }) {
-    const response = await this.client.put(`/items/${id}`, data);
-    return response.data;
-  }
-
-  async deleteItem(id: string) {
-    const response = await this.client.delete(`/items/${id}`);
-    return response.data;
-  }
-
-  // Billing endpoints
-  async createCheckoutSession() {
-    const response = await this.client.post('/billing/create-checkout-session');
-    return response.data;
-  }
-
-  async createPortalSession() {
-    const response = await this.client.post('/billing/create-portal-session');
+    if (USE_MOCK) {
+      return { user: MOCK_USER };
+    }
+    const response = await this.client.get('/auth/me');
     return response.data;
   }
 
   async getSubscription() {
-    const response = await this.client.get('/billing/subscription');
+    if (USE_MOCK) {
+      return { subscription: null };
+    }
+    const response = await this.client.get('/subscription');
     return response.data;
   }
 
-  // Notifications endpoints
-  async getNotifications(limit = 20, read?: boolean) {
-    const response = await this.client.get('/notifications', { params: { limit, read } });
-    return response.data;
-  }
-
-  async markNotificationRead(id: string) {
-    const response = await this.client.put(`/notifications/${id}/read`);
-    return response.data;
-  }
-
-  async markAllNotificationsRead() {
-    const response = await this.client.put('/notifications/read-all');
-    return response.data;
-  }
-
-  // Court endpoints
-  async getCourts(page = 1, limit = 20, search?: string) {
+  // Courts methods
+  async getCourts(page = 1, limit = 20, search = '') {
+    if (USE_MOCK) {
+      let courts = [...MOCK_COURTS];
+      if (search) {
+        const s = search.toLowerCase();
+        courts = courts.filter(c => 
+          c.name.toLowerCase().includes(s) || 
+          c.address.toLowerCase().includes(s)
+        );
+      }
+      return { courts, total: courts.length, page, limit };
+    }
     const response = await this.client.get('/courts', { params: { page, limit, search } });
     return response.data;
   }
 
-  async getNearbyCourts(lat: number, lng: number, radius = 10, limit = 20) {
-    const response = await this.client.get('/courts/nearby', { params: { lat, lng, radius, limit } });
-    return response.data;
-  }
-
   async getCourt(id: string) {
+    if (USE_MOCK) {
+      const court = MOCK_COURTS.find(c => c.id === id);
+      return { court };
+    }
     const response = await this.client.get(`/courts/${id}`);
     return response.data;
   }
 
+  async getNearbyCourts(lat: number, lng: number, radius = 10, limit = 20) {
+    if (USE_MOCK) {
+      return { courts: MOCK_COURTS };
+    }
+    const response = await this.client.get('/courts/nearby', { params: { lat, lng, radius, limit } });
+    return response.data;
+  }
+
   async getFavorites() {
+    if (USE_MOCK) {
+      return { 
+        favorites: MOCK_COURTS.slice(0, 2).map(court => ({
+          id: `fav-${court.id}`,
+          court,
+          addedAt: new Date().toISOString(),
+        })) 
+      };
+    }
     const response = await this.client.get('/courts/favorites/me');
     return response.data;
   }
 
   async addFavorite(courtId: string) {
+    if (USE_MOCK) {
+      return { success: true };
+    }
     const response = await this.client.post('/courts/favorites', { courtId });
     return response.data;
   }
 
   async removeFavorite(courtId: string) {
+    if (USE_MOCK) {
+      return { success: true };
+    }
     const response = await this.client.delete(`/courts/favorites/${courtId}`);
     return response.data;
   }
 
   async checkFavorite(courtId: string) {
+    if (USE_MOCK) {
+      return { isFavorite: false };
+    }
     const response = await this.client.get(`/courts/favorites/check/${courtId}`);
     return response.data;
   }
 
-  async reportCourt(data: { courtId: string; status: string; availableCourts?: number; queueGroups?: number; waitTimeMinutes?: number; reportType?: string }) {
+  async reportCourt(data: any) {
+    if (USE_MOCK) {
+      return { success: true };
+    }
     const response = await this.client.post('/courts/report', data);
     return response.data;
   }
 
-  async getCourtReports(courtId: string, limit = 20) {
-    const response = await this.client.get(`/courts/${courtId}/reports`, { params: { limit } });
+  // Items methods
+  async getItems(page = 1, limit = 20) {
+    if (USE_MOCK) {
+      return { items: [], total: 0, page, limit };
+    }
+    const response = await this.client.get('/items', { params: { page, limit } });
+    return response.data;
+  }
+
+  async getItem(id: string) {
+    if (USE_MOCK) {
+      return { item: null };
+    }
+    const response = await this.client.get(`/items/${id}`);
+    return response.data;
+  }
+
+  async createItem(data: any) {
+    if (USE_MOCK) {
+      return { item: { ...data, id: 'mock-item-' + Date.now() } };
+    }
+    const response = await this.client.post('/items', data);
+    return response.data;
+  }
+
+  async logout() {
+    if (USE_MOCK) {
+      return { success: true };
+    }
+    const response = await this.client.post('/auth/logout');
     return response.data;
   }
 }

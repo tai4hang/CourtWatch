@@ -1,4 +1,5 @@
 import React from 'react';
+import { View, Image, Text, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -59,6 +60,13 @@ function AuthNavigator() {
 }
 
 function MainTabNavigator() {
+  const CustomHeader = ({ title }: { title: string }) => (
+    <View style={headerStyles.container}>
+      <Image source={require('../../assets/app-small-icon.png')} style={headerStyles.logo} />
+      <Text style={headerStyles.title}>{title}</Text>
+    </View>
+  );
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -78,6 +86,7 @@ function MainTabNavigator() {
         name="CourtList" 
         component={CourtListScreen}
         options={{ 
+          headerTitle: () => <CustomHeader title="Courts" />,
           tabBarLabel: 'Courts',
           tabBarIcon: ({ color, size }) => <TabIcon name="tennis" color={color} size={size} />,
         }}
@@ -86,6 +95,7 @@ function MainTabNavigator() {
         name="Favorites" 
         component={FavoritesScreen}
         options={{ 
+          headerTitle: () => <CustomHeader title="Favorites" />,
           tabBarLabel: 'Favorites',
           tabBarIcon: ({ color, size }) => <TabIcon name="heart" color={color} size={size} />,
         }}
@@ -94,7 +104,8 @@ function MainTabNavigator() {
         name="Notifications" 
         component={NotificationsScreen}
         options={{ 
-          tabBarLabel: 'Alerts',
+          headerTitle: () => <CustomHeader title="Notifications" />,
+          tabBarLabel: 'Notifications',
           tabBarIcon: ({ color, size }) => <TabIcon name="bell" color={color} size={size} />,
         }}
       />
@@ -102,6 +113,7 @@ function MainTabNavigator() {
         name="Settings" 
         component={SettingsScreen}
         options={{ 
+          headerTitle: () => <CustomHeader title="Settings" />,
           tabBarLabel: 'Settings',
           tabBarIcon: ({ color, size }) => <TabIcon name="settings" color={color} size={size} />,
         }}
@@ -156,3 +168,22 @@ function TabIcon({ name, color, size }: { name: string; color: string; size: num
   };
   return <Ionicons name={iconMap[name] || 'circle'} size={size} color={color} />;
 }
+
+const headerStyles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logo: {
+    width: 32,
+    height: 32,
+    marginRight: 8,
+    resizeMode: 'contain',
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: theme.colors.text,
+  },
+});

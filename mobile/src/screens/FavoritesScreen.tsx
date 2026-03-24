@@ -11,14 +11,26 @@ interface FavoriteCourt {
     id: string;
     name: string;
     address: string;
+    city?: string;
     totalCourts: number;
     courtType: string;
     surface: string;
     hasLights: boolean;
     isFree: boolean;
+    status?: 'green' | 'amber' | 'red';
   };
   addedAt: string;
 }
+
+const getStatusColor = (status?: string) => {
+  switch (status) {
+    case 'green': return '#4CAF50';
+
+    case 'amber': return '#FF9800';
+    case 'red': return '#F44336';
+    default: return '#9E9E9E';
+  }
+};
 
 export default function FavoritesScreen() {
   const navigation = useNavigation<any>();
@@ -57,18 +69,27 @@ export default function FavoritesScreen() {
       onPress={() => navigation.navigate('CourtDetail', { courtId: item.court.id })}
     >
       <View style={styles.courtHeader}>
-        <Text style={styles.courtName}>{item.court.name}</Text>
+        <View style={styles.nameRow}>
+          <Text style={styles.courtName}>{item.court.name}</Text>
+          <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.court.status) }]} />
+        </View>
         <TouchableOpacity onPress={() => handleRemoveFavorite(item.court.id)}>
           <Ionicons name="heart" size={24} color="#EF4444" />
         </TouchableOpacity>
       </View>
-      <Text style={styles.courtAddress}>{item.court.address}</Text>
+      <Text style={styles.courtAddress}>{item.court.city ? `${item.court.city}, ${item.court.address}` : item.court.address}</Text>
       <View style={styles.courtInfo}>
         <Text style={styles.courtInfoText}>{item.court.totalCourts} courts</Text>
         <Text style={styles.courtInfoText}>•</Text>
         <Text style={styles.courtInfoText}>{item.court.surface}</Text>
         <Text style={styles.courtInfoText}>•</Text>
         <Text style={styles.courtInfoText}>{item.court.courtType}</Text>
+        {item.court.hasLights && (
+          <>
+            <Text style={styles.courtInfoText}>•</Text>
+            <Text style={styles.courtInfoText}>Lights</Text>
+          </>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -157,6 +178,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: theme.colors.text,
     flex: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 12,
+  },
+  statusDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    marginLeft: 12,
   },
   courtAddress: {
     fontSize: 14,

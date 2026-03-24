@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Linking, Platform, Modal, Pressable, Alert, RefreshControl } from 'react-native';
+import { useRoute, RouteProp, useNavigation, useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import MapView, { Marker } from 'react-native-maps';
 import { api } from '../services/api';
 import { theme, styles as themeStyles } from '../theme';
 
@@ -12,6 +14,7 @@ interface Court {
   id: string;
   name: string;
   address: string;
+  city?: string;
   latitude: number;
   longitude: number;
   totalCourts: number;
@@ -19,6 +22,8 @@ interface Court {
   surface: string;
   hasLights: boolean;
   isFree: boolean;
+  status?: 'green' | 'amber' | 'red';
+  lastReported?: string;
 }
 
 export default function CourtDetailScreen() {
@@ -27,15 +32,32 @@ export default function CourtDetailScreen() {
   const [court, setCourt] = useState<Court | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [addingFavorite, setAddingFavorite] = useState(false);
+  const [notificationEnabled, setNotificationEnabled] = useState(false);
+  const [reporting, setReporting] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    loadCourt();
-  }, [route.params.courtId]);
+  useFocusEffect(
+    useCallback(() => {
+      loadCourt();
+    }, [route.params.courtId])
+  );
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadCourt();
+    setRefreshing(false);
+  };
 
   const loadCourt = async () => {
     try {
       const data = await api.getCourt(route.params.courtId);
       setCourt(data.court);
+      // Check if already a favorite
+      const favData = await api.checkFavorite(route.params.courtId);
+      setIsFavorite(favData.isFavorite);
     } catch (err) {
       console.error('Failed to load court:', err);
       setError('Failed to load court details');
@@ -44,9 +66,62 @@ export default function CourtDetailScreen() {
     }
   };
 
+  const handleAddFavorite = async () => {
+    if (isFavorite || addingFavorite) return;
+    setAddingFavorite(true);
+    try {
+      await api.addFavorite(route.params.courtId);
+      setIsFavorite(true);
+    } catch (err) {
+      console.error('Failed to add favorite:', err);
+    } finally {
+      setAddingFavorite(false);
+    }
+  };
+
+  const getStatusColor = (status?: string) => {
+    switch (status) {
+      case 'green': return '#4CAF50';
+
+      case 'amber': return '#FF9800';
+      case 'red': return '#F44336';
+      default: return '#9E9E9E';
+    }
+  };
+
+  const handleNotifyToggle = () => {
+    setNotificationEnabled(!notificationEnabled);
+  };
+
+  const handleReportStatus = () => {
+    setShowStatusModal(true);
+  };
+
+  const handleStatusSelect = async (newStatus: string) => {
+    setShowStatusModal(false);
+    if (!court) return;
+    setReporting(true);
+    try {
+      await api.reportCourt({
+        courtId: court.id,
+        status: newStatus as 'green' | 'amber' | 'red',
+      });
+      setCourt({ ...court, status: newStatus as any });
+      Alert.alert(
+        'Thank You!',
+        'Status reported. Thanks for your contribution.',
+        [{ text: 'OK' }]
+      );
+    } catch (err) {
+      console.error('Failed to report:', err);
+    } finally {
+      setReporting(false);
+    }
+  };
+
   if (loading) {
     return (
-      <View style={[themeStyles.container, styles.centered]}>
+      <View style={[styles.container, styles.centered]}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
@@ -54,24 +129,76 @@ export default function CourtDetailScreen() {
 
   if (error || !court) {
     return (
-      <View style={[themeStyles.container, styles.centered]}>
+      <View style={[styles.container, styles.centered]}>
         <Text style={themeStyles.errorText}>{error || 'Court not found'}</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={themeStyles.container}>
+    <ScrollView 
+      style={styles.container} 
+      contentContainerStyle={styles.content}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={[theme.colors.primary]}
+          tintColor={theme.colors.primary}
+        />
+      }
+    >
       <View style={styles.header}>
-        <Text style={styles.title}>{court.name}</Text>
-        <View style={[styles.badge, court.isFree ? styles.freeBadge : styles.paidBadge]}>
-          <Text style={styles.badgeText}>{court.isFree ? 'Free' : 'Paid'}</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>{court.name}</Text>
+          {court.hasLights && (
+            <Ionicons name="flashlight" size={18} color="#FFC107" style={styles.lightIcon} />
+          )}
+        </View>
+        {court.city && <Text style={styles.cityText}>{court.city}</Text>}
+        <View style={styles.statusRow}>
+          <View style={[styles.statusDot, { backgroundColor: getStatusColor(court.status) }]} />
         </View>
       </View>
 
       <View style={styles.section}>
         <Text style={styles.label}>Address</Text>
-        <Text style={styles.value}>{court.address}</Text>
+        <TouchableOpacity onPress={() => {
+          const url = Platform.OS === 'ios' 
+            ? `http://maps.apple.com/?ll=${court.latitude},${court.longitude}&q=${encodeURIComponent(court.address)}`
+            : `https://www.google.com/maps/search/?api=1&query=${court.latitude},${court.longitude}`;
+          Linking.openURL(url);
+        }}>
+          <Text style={styles.value}>{court.address}</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.mapContainer}>
+        <MapView
+          style={styles.map}
+          initialRegion={{
+            latitude: court.latitude,
+            longitude: court.longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          }}
+          scrollEnabled={false}
+          zoomEnabled={false}
+        >
+          <Marker
+            coordinate={{ latitude: court.latitude, longitude: court.longitude }}
+            title={court.name}
+          />
+        </MapView>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.label}>Last Status Reported</Text>
+        <Text style={[styles.lastReportedValue, { color: court.lastReported ? getStatusColor(court.status) : '#000' }]}>
+          {court.lastReported 
+            ? new Date(court.lastReported).toLocaleString() 
+            : 'N/A'}
+        </Text>
       </View>
 
       <View style={styles.row}>
@@ -96,14 +223,89 @@ export default function CourtDetailScreen() {
         </View>
       </View>
 
-      <TouchableOpacity style={themeStyles.button} onPress={() => api.addFavorite(court.id)}>
-        <Text style={themeStyles.buttonText}>Add to Favorites</Text>
+      <TouchableOpacity
+        style={[themeStyles.button, styles.reportButton]}
+        onPress={handleReportStatus}
+        disabled={reporting}
+      >
+        <Ionicons 
+          name="flag" 
+          size={20} 
+          color="#fff" 
+          style={styles.heartIcon}
+        />
+        <Text style={themeStyles.buttonText}>
+          {reporting ? 'Reporting...' : 'Report Current Status'}
+        </Text>
       </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[themeStyles.button, isFavorite && styles.favoriteButtonDisabled]}
+        onPress={handleAddFavorite}
+        disabled={isFavorite || addingFavorite}
+      >
+        <Ionicons 
+          name={isFavorite ? "heart" : "heart-outline"} 
+          size={20} 
+          color={isFavorite ? "#E0E0E0" : "#fff"} 
+          style={styles.heartIcon}
+        />
+        <Text style={[themeStyles.buttonText, isFavorite && styles.favoriteTextDisabled]}>
+          {addingFavorite ? 'Adding...' : isFavorite ? 'Added to Favorites' : 'Add to Favorites'}
+        </Text>
+      </TouchableOpacity>
+
+      {court.status && court.status !== 'green' && (
+        <TouchableOpacity
+          style={[themeStyles.button, styles.notifyButton, notificationEnabled && styles.notifyButtonActive]}
+          onPress={handleNotifyToggle}
+        >
+          <Ionicons 
+            name={notificationEnabled ? "notifications" : "notifications-outline"} 
+            size={20} 
+            color="#fff" 
+            style={styles.heartIcon}
+          />
+          <Text style={themeStyles.buttonText}>
+            {notificationEnabled ? 'Notifications On' : 'Notify Me'}
+          </Text>
+        </TouchableOpacity>
+      )}
+
+      <Modal
+        visible={showStatusModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowStatusModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowStatusModal(false)}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Report Court Status</Text>
+            <TouchableOpacity style={[styles.statusOption, { backgroundColor: '#4CAF50' }]} onPress={() => handleStatusSelect('green')}>
+              <Text style={styles.statusOptionText}>Available</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.statusOption, { backgroundColor: '#FF9800' }]} onPress={() => handleStatusSelect('amber')}>
+              <Text style={styles.statusOptionText}>Not Available (No Queue)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.statusOption, { backgroundColor: '#F44336' }]} onPress={() => handleStatusSelect('red')}>
+              <Text style={styles.statusOptionText}>Busy (In Queue)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.modalCancel} onPress={() => setShowStatusModal(false)}>
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -116,21 +318,107 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     flex: 1,
   },
-  badge: {
-    paddingHorizontal: 12,
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  lightIcon: {
+    marginLeft: 8,
+  },
+  cityText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginBottom: 4,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 12,
   },
-  freeBadge: {
-    backgroundColor: '#4CAF50',
+  statusDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    marginRight: 8,
   },
-  paidBadge: {
+  statusText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.text,
+  },
+  mapContainer: {
+    height: 200,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  map: {
+    flex: 1,
+  },
+  favoriteButtonDisabled: {
+    backgroundColor: '#9E9E9E',
+  },
+  favoriteTextDisabled: {
+    color: '#E0E0E0',
+  },
+  heartIcon: {
+    marginRight: 8,
+  },
+  notifyButton: {
+    marginTop: 12,
     backgroundColor: '#FF9800',
   },
-  badgeText: {
+  notifyButtonActive: {
+    backgroundColor: '#4CAF50',
+  },
+  reportButton: {
+    marginTop: 12,
+    backgroundColor: '#3B82F6',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    padding: 20,
+    width: '80%',
+    maxWidth: 300,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: theme.colors.text,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  statusOption: {
+    padding: 14,
+    borderRadius: 8,
+    marginBottom: 10,
+    alignItems: 'center',
+  },
+  statusOptionText: {
     color: '#fff',
+    fontSize: 16,
     fontWeight: '600',
-    fontSize: 12,
+  },
+  modalCancel: {
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  modalCancelText: {
+    color: theme.colors.textSecondary,
+    fontSize: 16,
   },
   section: {
     marginBottom: 16,
@@ -143,6 +431,11 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 16,
     color: theme.colors.text,
+  },
+  lastReportedValue: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: theme.colors.primary,
   },
   row: {
     flexDirection: 'row',
@@ -164,6 +457,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: theme.colors.text,
+  },
+  content: {
+    padding: 16,
   },
   centered: {
     justifyContent: 'center',

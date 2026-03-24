@@ -7,7 +7,6 @@ export default function NotificationsScreen() {
   return (
     <ScreenContainer>
       <View style={styles.content}>
-        <Text style={themeStyles.title}>Notifications</Text>
         <View style={styles.card}>
           <Text style={styles.cardText}>No notifications yet</Text>
         </View>
