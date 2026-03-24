@@ -60,4 +60,7 @@ export const AnalyticsEvents = {
   ITEM_CREATED: 'item_created',
   ITEM_DELETED: 'item_deleted',
   NOTIFICATION_SENT: 'notification_sent',
+  COURT_CREATED: 'court_created',
+  COURT_REPORTED: 'court_reported',
+  FAVORITE_ADDED: 'favorite_added',
 } as const;

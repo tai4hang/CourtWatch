@@ -1,14 +1,18 @@
 import React from 'react';
+import { View, Image, Text, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
+import { theme } from '../theme';
 
 // Screens
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
-import DashboardScreen from '../screens/DashboardScreen';
-import ItemsListScreen from '../screens/ItemsListScreen';
+import CourtListScreen from '../screens/CourtListScreen';
+import CourtDetailScreen from '../screens/CourtDetailScreen';
+import FavoritesScreen from '../screens/FavoritesScreen';
 import ItemDetailScreen from '../screens/ItemDetailScreen';
 import CreateItemScreen from '../screens/CreateItemScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
@@ -27,8 +31,8 @@ export type AuthStackParamList = {
 };
 
 export type MainTabParamList = {
-  Dashboard: undefined;
-  Items: undefined;
+  CourtList: undefined;
+  Favorites: undefined;
   Notifications: undefined;
   Settings: undefined;
 };
@@ -38,6 +42,7 @@ export type MainStackParamList = {
   ItemDetail: { itemId: string };
   CreateItem: undefined;
   Subscription: undefined;
+  CourtDetail: { courtId: string };
 };
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
@@ -55,34 +60,52 @@ function AuthNavigator() {
 }
 
 function MainTabNavigator() {
+  const CustomHeader = ({ title }: { title: string }) => (
+    <View style={headerStyles.container}>
+      <Image source={require('../../assets/app-small-icon.png')} style={headerStyles.logo} />
+      <Text style={headerStyles.title}>{title}</Text>
+    </View>
+  );
+
   return (
     <Tab.Navigator
       screenOptions={{
-        tabBarActiveTintColor: '#4F46E5',
-        tabBarInactiveTintColor: '#6B7280',
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.textSecondary,
+        tabBarStyle: {
+          backgroundColor: theme.colors.surface,
+          borderTopColor: theme.colors.border,
+        },
+        headerStyle: {
+          backgroundColor: theme.colors.surface,
+        },
+        headerTintColor: theme.colors.text,
       }}
     >
       <Tab.Screen 
-        name="Dashboard" 
-        component={DashboardScreen}
+        name="CourtList" 
+        component={CourtListScreen}
         options={{ 
-          tabBarLabel: 'Home',
-          tabBarIcon: ({ color, size }) => <TabIcon name="home" color={color} size={size} />,
+          headerTitle: () => <CustomHeader title="Courts" />,
+          tabBarLabel: 'Courts',
+          tabBarIcon: ({ color, size }) => <TabIcon name="tennis" color={color} size={size} />,
         }}
       />
       <Tab.Screen 
-        name="Items" 
-        component={ItemsListScreen}
+        name="Favorites" 
+        component={FavoritesScreen}
         options={{ 
-          tabBarLabel: 'Items',
-          tabBarIcon: ({ color, size }) => <TabIcon name="list" color={color} size={size} />,
+          headerTitle: () => <CustomHeader title="Favorites" />,
+          tabBarLabel: 'Favorites',
+          tabBarIcon: ({ color, size }) => <TabIcon name="heart" color={color} size={size} />,
         }}
       />
       <Tab.Screen 
         name="Notifications" 
         component={NotificationsScreen}
         options={{ 
-          tabBarLabel: 'Alerts',
+          headerTitle: () => <CustomHeader title="Notifications" />,
+          tabBarLabel: 'Notifications',
           tabBarIcon: ({ color, size }) => <TabIcon name="bell" color={color} size={size} />,
         }}
       />
@@ -90,6 +113,7 @@ function MainTabNavigator() {
         name="Settings" 
         component={SettingsScreen}
         options={{ 
+          headerTitle: () => <CustomHeader title="Settings" />,
           tabBarLabel: 'Settings',
           tabBarIcon: ({ color, size }) => <TabIcon name="settings" color={color} size={size} />,
         }}
@@ -109,6 +133,7 @@ function MainNavigator() {
       <MainStack.Screen name="ItemDetail" component={ItemDetailScreen} />
       <MainStack.Screen name="CreateItem" component={CreateItemScreen} options={{ title: 'New Item' }} />
       <MainStack.Screen name="Subscription" component={SubscriptionScreen} options={{ title: 'Subscription' }} />
+      <MainStack.Screen name="CourtDetail" component={CourtDetailScreen} options={{ title: 'Court Details' }} />
     </MainStack.Navigator>
   );
 }
@@ -133,15 +158,32 @@ export default function AppNavigator() {
   );
 }
 
-// Simple tab icon component
-import { Ionicons } from '@expo/vector-icons';
-
 function TabIcon({ name, color, size }: { name: string; color: string; size: number }) {
   const iconMap: Record<string, keyof typeof Ionicons.glyphMap> = {
     home: 'home',
-    list: 'list',
+    tennis: 'tennisball',
+    heart: 'heart',
     bell: 'notifications',
     settings: 'settings',
   };
   return <Ionicons name={iconMap[name] || 'circle'} size={size} color={color} />;
 }
+
+const headerStyles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logo: {
+    width: 32,
+    height: 32,
+    marginRight: 8,
+    resizeMode: 'contain',
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: theme.colors.text,
+  },
+});
