@@ -9,11 +9,10 @@
  *    - Data stored in ./data/dev.db (configurable via SQLITE_PATH)
  *    - Uses sql.js (WebAssembly-based SQLite)
  * 
- * 2. Oracle Cloud AI Database - For production
- *    - Set DB_TYPE=oracle
- *    - Requires Oracle Cloud ATP/ADW credentials
- *    - Uses TLS-only (SERVER authentication) on port 1521
- *    - No wallet required - credentials passed directly
+ * 2. Firestore (Google Cloud Firestore) - For production
+ *    - Set DB_TYPE=firestore
+ *    - Requires Google Cloud credentials
+ *    - Works with Cloud Run, GKE, Cloud Functions
  * 
  * =============================================================================
  * ENVIRONMENT VARIABLES
@@ -23,31 +22,13 @@
  *   DB_TYPE=sqlite
  *   SQLITE_PATH=./data/dev.db
  * 
- * For Oracle (required):
- *   DB_TYPE=oracle
- *   ORACLE_USER=admin
- *   ORACLE_PASSWORD=your_password
- *   ORACLE_CONNECT_STRING=your_service_name (e.g., gc4a69fc3be605f_ub3ak3mtvbqjs41l_tp.adb.oraclecloud.com)
+ * For Firestore (required):
+ *   DB_TYPE=firestore
+ *   GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
+ *   GCP_PROJECT=your-project-id (optional, for local dev)
  * 
- * =============================================================================
- * ORACLE CLOUD AI DATABASE - CONNECTION SETUP (CRITICAL!)
- * =============================================================================
- * 
- * ⚠️  IMPORTANT: Oracle Cloud ATP has TWO connection modes:
- * 
- * 1. TLS-only (SERVER authentication) - No wallet needed
- *    - Port: 1521
- *    - Protocol: TCPS (NOT TCP!)
- *    - Connection string format:
- *      (description= (retry_count=20)(retry_delay=3)(address=(protocol=tcps)(port=1521)(host=adb.us-ashburn-1.oraclecloud.com))(connect_data=(service_name=YOUR_SERVICE_NAME))(security=(ssl_server_dn_match=yes)))
- *    - This is what we use - no wallet required!
- * 
- * 2. mTLS (MUTUAL authentication) - Wallet required
- *    - Port: 1522
- *    - Protocol: TCPS
- *    - Requires wallet files (cwallet.sso, ewallet.p12, etc.)
- *    - Wallet password needed (may differ from DB password)
- *    - See connection strings from OCI console for mTLS URLs
+ * For local Firestore emulator:
+ *   FIRESTORE_EMULATOR_HOST=localhost:8080
  * 
  * =============================================================================
  * COMMON CONNECTION ERRORS & SOLUTIONS
@@ -141,10 +122,11 @@
 import { logger } from '../utils/logger.js';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { initFirestore } from './firestore.js';
 
 // Database type configuration - controls which database is used
-// Set DB_TYPE=oracle for Oracle Cloud, DB_TYPE=sqlite (default) for local
-type DbType = 'oracle' | 'sqlite';
+// Set DB_TYPE=firestore for Google Cloud Firestore, DB_TYPE=sqlite (default) for local
+type DbType = 'firestore' | 'oracle' | 'sqlite';
 const DB_TYPE = (process.env.DB_TYPE as DbType) || 'sqlite';
 
 // SQLite imports (only used when DB_TYPE=sqlite)
@@ -628,7 +610,9 @@ let pool: any = null;
 export async function initDb(): Promise<void> {
   logger.info(`Initializing ${DB_TYPE} database...`);
   
-  if (DB_TYPE === 'oracle') {
+  if (DB_TYPE === 'firestore') {
+    pool = initFirestore();
+  } else if (DB_TYPE === 'oracle') {
     pool = await initOracle();
   } else {
     pool = await initSqlite();
@@ -640,7 +624,9 @@ export async function getDbConnection(): Promise<any> {
     await initDb();
   }
   
-  if (DB_TYPE === 'oracle') {
+  if (DB_TYPE === 'firestore') {
+    return pool;
+  } else if (DB_TYPE === 'oracle') {
     return pool.getConnection();
   } else {
     return pool;
