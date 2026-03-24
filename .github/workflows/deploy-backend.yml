@@ -71,19 +71,19 @@ jobs:
         run: |
           # Build for AMD64 (Cloud Run requirement)
           docker build \
-            --tag northamerica-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ steps.vars.outputs.repo }}:${{ steps.vars.outputs.tag }} \
-            --tag northamerica-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ steps.vars.outputs.repo }}:${{ steps.vars.outputs.sha }} \
-            --tag northamerica-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ steps.vars.outputs.repo }}:latest \
+            --tag northamerica-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/docker/${{ steps.vars.outputs.repo }}:${{ steps.vars.outputs.tag }} \
+            --tag northamerica-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/docker/${{ steps.vars.outputs.repo }}:${{ steps.vars.outputs.sha }} \
+            --tag northamerica-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/docker/${{ steps.vars.outputs.repo }}:latest \
             --platform linux/amd64 \
             .
           
-          docker push northamerica-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ steps.vars.outputs.repo }}:${{ steps.vars.outputs.tag }}
-          docker push northamerica-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ steps.vars.outputs.repo }}:latest
+          docker push northamerica-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/docker/${{ steps.vars.outputs.repo }}:${{ steps.vars.outputs.tag }}
+          docker push northamerica-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/docker/${{ steps.vars.outputs.repo }}:latest
 
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy ${{ steps.vars.outputs.repo }}-api \
-            --image northamerica-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ steps.vars.outputs.repo }}:${{ steps.vars.outputs.tag }} \
+            --image northamerica-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/docker/${{ steps.vars.outputs.repo }}:${{ steps.vars.outputs.tag }} \
             --platform managed \
             --region northamerica-northeast2 \
             --allow-unauthenticated \
