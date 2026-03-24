@@ -42,8 +42,16 @@ jobs:
       - name: Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: Create Artifact Registry repository
+        run: |
+          gcloud artifacts repositories create courtwatch \
+            --repository-format=docker \
+            --location=northamerica-northeast2 \
+            --description="CourtWatch Docker images" \
+            --quiet 2>/dev/null || true
+
       - name: Configure Docker Auth
-        run: gcloud auth configure-docker
+        run: gcloud auth configure-docker northamerica-northeast2-docker.pkg.dev
 
       - name: Get repository name
         id: repo
@@ -63,19 +71,19 @@ jobs:
         run: |
           # Build for AMD64 (Cloud Run requirement)
           docker build \
-            --tag gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ steps.vars.outputs.repo }}:${{ steps.vars.outputs.tag }} \
-            --tag gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ steps.vars.outputs.repo }}:${{ steps.vars.outputs.sha }} \
-            --tag gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ steps.vars.outputs.repo }}:latest \
+            --tag northamerica-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/docker/${{ steps.vars.outputs.repo }}:${{ steps.vars.outputs.tag }} \
+            --tag northamerica-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/docker/${{ steps.vars.outputs.repo }}:${{ steps.vars.outputs.sha }} \
+            --tag northamerica-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/docker/${{ steps.vars.outputs.repo }}:latest \
             --platform linux/amd64 \
             .
           
-          docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ steps.vars.outputs.repo }}:${{ steps.vars.outputs.tag }}
-          docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ steps.vars.outputs.repo }}:latest
+          docker push northamerica-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/docker/${{ steps.vars.outputs.repo }}:${{ steps.vars.outputs.tag }}
+          docker push northamerica-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/docker/${{ steps.vars.outputs.repo }}:latest
 
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy ${{ steps.vars.outputs.repo }}-api \
-            --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ steps.vars.outputs.repo }}:${{ steps.vars.outputs.tag }} \
+            --image northamerica-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/docker/${{ steps.vars.outputs.repo }}:${{ steps.vars.outputs.tag }} \
             --platform managed \
             --region northamerica-northeast2 \
             --allow-unauthenticated \
