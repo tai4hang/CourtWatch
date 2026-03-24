@@ -10,10 +10,9 @@
  *   GCP_PROJECT=your-project-id (if not using default credentials)
  */
 
-import { Firestore, CollectionReference, QueryDocumentSnapshot } from 'firebase-admin/firestore';
+import { Firestore, CollectionReference, QueryDocumentSnapshot, getFirestore } from 'firebase-admin/firestore';
 import { initializeApp, cert, getApps, App, getApp } from 'firebase-admin/app';
 import fs from 'fs';
-import path from 'path';
 
 let db: Firestore | null = null;
 let app: App | null = null;
@@ -21,7 +20,7 @@ let app: App | null = null;
 export function initFirestore(): Firestore {
   if (db) return db;
 
-  // Get GCP project from env or use default
+  // Get GCP project from env
   const projectId = process.env.GCP_PROJECT || process.env.GCLOUD_PROJECT;
 
   // Initialize Firebase Admin if not already initialized
@@ -36,7 +35,7 @@ export function initFirestore(): Firestore {
         projectId: projectId,
       });
     } else {
-      // Use default credentials (Cloud Run, GKE, etc.) - must specify projectId
+      // Use default credentials (Cloud Run, GKE, etc.)
       app = initializeApp({
         projectId: projectId,
       });
@@ -45,7 +44,8 @@ export function initFirestore(): Firestore {
     app = getApps()[0];
   }
 
-  db = app.firestore();
+  // Use getFirestore() instead of app.firestore()
+  db = getFirestore(app);
   
   // Enable timestamps in snapshots
   db.settings({ timestampsInSnapshots: true });
