@@ -43,7 +43,16 @@ export async function authRoutes(fastify: FastifyInstance) {
   // Login
   fastify.post('/login', async (request: FastifyRequest, reply: FastifyReply) => {
     const input = loginSchema.parse(request.body);
-    const result = await authService.login(input);
+    
+    let result;
+    try {
+      result = await authService.login(input);
+    } catch (err: any) {
+      if (err.message === 'Invalid credentials') {
+        return reply.status(401).send({ message: 'Invalid email or password' });
+      }
+      throw err;
+    }
     
     trackEvent(AnalyticsEvents.USER_LOGIN, { email: input.email }, result.user.id);
     

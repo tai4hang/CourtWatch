@@ -62,18 +62,40 @@ export const authService = {
   },
 
   async login(input: LoginInput): Promise<{ user: Omit<User, 'password_hash'>; accessToken: string; refreshToken: string }> {
+    logger.info({ email: input.email }, 'Login: starting');
     const { email, password } = input;
 
-    // Find user
-    const user = await userModel.findByEmail(email);
+    // Find user - with timeout wrapper
+    logger.info({ email }, 'Login: finding user');
+    const user = await Promise.race([
+      userModel.findByEmail(email),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+    ]) as User | null;
+    logger.info({ email, found: !!user, user }, 'Login: user found');
+    
+    // Debug: Check what's in user
+    console.log('DEBUG: user object:', JSON.stringify(user));
+    if (user) {
+      console.log('DEBUG: user.password_hash:', user.password_hash);
+    }
+    
     if (!user) {
-      throw new Error('Invalid credentials');
+      const err = new Error('Invalid credentials') as Error & { statusCode: number };
+      err.statusCode = 401;
+      throw err;
     }
 
-    // Verify password
+    // Verify password - use console.log for debug
+    console.log('DEBUG: Comparing password for', email);
+    console.log('DEBUG: Input password:', password, 'length:', password.length);
+    console.log('DEBUG: Stored hash:', user.password_hash);
     const valid = await bcrypt.compare(password, user.password_hash);
+    console.log('DEBUG: Result:', valid);
+    
     if (!valid) {
-      throw new Error('Invalid credentials');
+      const err = new Error('Invalid credentials') as Error & { statusCode: number };
+      err.statusCode = 401;
+      throw err;
     }
 
     // Create tokens

@@ -9,7 +9,15 @@ export default function App() {
   const { initialize } = useAuthStore();
 
   useEffect(() => {
-    initialize();
+    // Wrap in try-catch to prevent initialization crashes
+    const init = async () => {
+      try {
+        await initialize();
+      } catch (e) {
+        console.log('Init skipped:', e);
+      }
+    };
+    init();
   }, []);
 
   return (
