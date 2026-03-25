@@ -13,7 +13,7 @@ import { logger } from '../utils/logger.js';
 import type { Firestore } from 'firebase-admin/firestore';
 
 type DbType = 'firestore' | 'sqlite';
-const DB_TYPE = (process.env.DB_TYPE as DbType) || 'sqlite';
+const DB_TYPE = (process.env.DB_TYPE as DbType) || 'firestore';
 
 let db: Firestore | any = null;
 let initialized = false;
