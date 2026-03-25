@@ -9,7 +9,7 @@ import { authRoutes } from './routes/auth.js';
 import { userRoutes } from './routes/users.js';
 import { notificationRoutes } from './routes/notifications.js';
 import { healthRoutes } from './routes/health.js';
-import { courtRoutes } from './routes/courts.js';
+import { testRoutes } from './routes/test.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { logger } from './utils/logger.js';
 
@@ -69,6 +69,9 @@ export async function buildApp() {
 
   // Health routes
   await app.register(healthRoutes);
+
+  // Test routes
+  await app.register(testRoutes);
 
   // API routes
   await app.register(authRoutes, { prefix: '/api/auth' });
