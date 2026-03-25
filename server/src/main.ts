@@ -2,7 +2,7 @@ import { buildApp } from './app.js';
 import { logger } from './utils/logger.js';
 import { initDb, closeDb } from './db/connection.js';
 
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
 
 async function start() {
   try {
