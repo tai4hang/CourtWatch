@@ -22,35 +22,49 @@ export function initFirestore(): Firestore {
 
   // Get GCP project from env
   const projectId = process.env.GCP_PROJECT || process.env.GCLOUD_PROJECT;
+  console.log('Initializing Firestore with project:', projectId);
 
   // Initialize Firebase Admin if not already initialized
   if (getApps().length === 0) {
     const credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    console.log('Credentials path:', credentialsPath);
     
-    if (credentialsPath && fs.existsSync(credentialsPath)) {
-      // Use service account file
-      const serviceAccount = require(credentialsPath);
-      app = initializeApp({
-        credential: cert(serviceAccount),
-        projectId: projectId,
-      });
-    } else {
-      // Use default credentials (Cloud Run, GKE, etc.)
-      app = initializeApp({
-        projectId: projectId,
-      });
+    try {
+      if (credentialsPath && fs.existsSync(credentialsPath)) {
+        // Use service account file
+        console.log('Using service account file');
+        const serviceAccount = require(credentialsPath);
+        app = initializeApp({
+          credential: cert(serviceAccount),
+          projectId: projectId,
+        });
+      } else {
+        // Use default credentials (Cloud Run, GKE, etc.)
+        console.log('Using default credentials');
+        app = initializeApp({
+          projectId: projectId,
+        });
+      }
+    } catch (err) {
+      console.error('Error initializing Firebase app:', err);
+      throw err;
     }
   } else {
     app = getApps()[0];
+    console.log('Using existing Firebase app');
   }
 
   // Use getFirestore() instead of app.firestore()
-  db = getFirestore(app);
-  
-  // Enable timestamps in snapshots
-  db.settings({ timestampsInSnapshots: true });
+  try {
+    db = getFirestore(app);
+    // Enable timestamps in snapshots
+    db.settings({ timestampsInSnapshots: true });
+    console.log('Firestore initialized successfully');
+  } catch (err) {
+    console.error('Error getting Firestore instance:', err);
+    throw err;
+  }
 
-  console.log('Firestore initialized successfully');
   return db;
 }
 
