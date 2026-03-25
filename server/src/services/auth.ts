@@ -44,6 +44,7 @@ export const authService = {
       const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
       await sessionModel.create({
         userId: user.id,
+        accessToken,
         refreshToken,
         expiresAt,
       });
@@ -85,6 +86,7 @@ export const authService = {
       const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
       await sessionModel.create({
         userId: user.id,
+        accessToken,
         refreshToken,
         expiresAt,
       });
