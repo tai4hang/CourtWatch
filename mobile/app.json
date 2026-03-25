@@ -53,7 +53,7 @@
       "eas": {
         "projectId": "${EAS_PROJECT_ID}"
       },
-      "EXPO_PUBLIC_API_URL": "https://tai4hang-courtwatch.loca.lt"
+      "EXPO_PUBLIC_API_URL": "https://courtwatch-api-542775745789.northamerica-northeast2.run.app"
     }
   }
 }
