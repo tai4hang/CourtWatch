@@ -49,10 +49,10 @@ export async function authenticate(
       role: user.role,
     };
   } catch (err) {
-    logger.warn({ err }, 'Authentication failed');
+    logger.error({ err }, 'Authentication failed with error');
     return reply.status(401).send({
       error: 'Unauthorized',
-      message: 'Invalid or expired token',
+      message: 'Validate token error',
       statusCode: 401,
     });
   }
