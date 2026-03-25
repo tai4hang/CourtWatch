@@ -70,7 +70,7 @@ export async function buildApp() {
   app.setErrorHandler(errorHandler);
 
   // Health routes
-  await app.register(healthRoutes);
+  await app.register(healthRoutes, { prefix: '/api' });
 
   // Test routes
   await app.register(testRoutes);
