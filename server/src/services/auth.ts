@@ -102,4 +102,49 @@ export const authService = {
       throw err;
     }
   },
+
+  async validateToken(token: string) {
+    try {
+      // Check if it's a refresh token (stored in session)
+      const userFromRefresh = await sessionModel.findByRefreshToken(token);
+      if (userFromRefresh) {
+        return {
+          id: userFromRefresh.id,
+          email: userFromRefresh.email,
+          role: userFromRefresh.role,
+        };
+      }
+
+      // Check if it's an access token
+      const userFromAccess = await userModel.findByAccessToken(token);
+      if (userFromAccess) {
+        return {
+          id: userFromAccess.id,
+          email: userFromAccess.email,
+          role: userFromAccess.role,
+        };
+      }
+
+      return null;
+    } catch (err) {
+      logger.error({ err, token }, 'Validate token error');
+      return null;
+    }
+  },
+
+  async logout(token: string) {
+    try {
+      // Delete session if it's a refresh token
+      const session = await sessionModel.findByRefreshToken(token);
+      if (session) {
+        await sessionModel.delete(session.id);
+      }
+      // For access tokens, we could invalidate them by removing from user record
+      // For now just return success
+      return true;
+    } catch (err) {
+      logger.error({ err }, 'Logout error');
+      return false;
+    }
+  },
 };
