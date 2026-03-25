@@ -73,11 +73,12 @@ export function initFirestore(): Firestore {
   }
 
   // Use getFirestore() instead of app.firestore()
+  const databaseId = process.env.FIRESTORE_DB_NAME || 'courtwatchdb';
   try {
-    db = getFirestore(app);
+    db = getFirestore(app, databaseId);
     // Enable timestamps in snapshots
     db.settings({ timestampsInSnapshots: true });
-    console.log('Firestore initialized successfully');
+    console.log(`Firestore initialized successfully with database: ${databaseId}`);
   } catch (err) {
     console.error('Error getting Firestore instance:', err);
     throw err;
