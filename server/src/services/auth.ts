@@ -117,8 +117,8 @@ export const authService = {
         };
       }
 
-      // Check if it's an access token
-      const userFromAccess = await userModel.findByAccessToken(token);
+      // Check if it's an access token (stored in session)
+      const userFromAccess = await sessionModel.findByAccessToken(token);
       if (userFromAccess) {
         return {
           id: userFromAccess.id,
