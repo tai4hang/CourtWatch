@@ -242,6 +242,15 @@ class ApiClient {
     return response.data;
   }
 
+  async reportCourtStatus(courtId: string, data: any) {
+    if (USE_MOCK) {
+      return { success: true };
+    }
+    // Backend expects POST /courts/report with courtId in body
+    const response = await this.client.post('/courts/report', { courtId, ...data });
+    return response.data;
+  }
+
   async reportCourt(data: any) {
     if (USE_MOCK) {
       return { success: true };
