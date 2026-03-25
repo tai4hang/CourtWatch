@@ -8,11 +8,24 @@
  * Environment Variables:
  *   FIRESTORE_EMULATOR_HOST=localhost:8080 (for local development)
  *   GCP_PROJECT=your-project-id (if not using default credentials)
+ * 
+ * For local development with emulator:
+ *   FIRESTORE_EMULATOR_HOST=localhost:8080
+ *   npx firebase emulators:start
  */
 
 import { Firestore, CollectionReference, QueryDocumentSnapshot, getFirestore } from 'firebase-admin/firestore';
 import { initializeApp, cert, getApps, App, getApp } from 'firebase-admin/app';
 import fs from 'fs';
+
+// Firebase Admin automatically connects to emulator when FIRESTORE_EMULATOR_HOST is set
+// Just ensure the env var is set properly
+const EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST;
+if (EMULATOR_HOST) {
+  console.log(`Using Firestore emulator: ${EMULATOR_HOST}`);
+  process.env.GCLOUD_PROJECT = process.env.GCP_PROJECT || 'demo-project';
+  // This env var is automatically read by firebase-admin
+}
 
 let db: Firestore | null = null;
 let app: App | null = null;
@@ -21,8 +34,13 @@ export function initFirestore(): Firestore {
   if (db) return db;
 
   // Get GCP project from env
-  const projectId = process.env.GCP_PROJECT || process.env.GCLOUD_PROJECT;
+  const projectId = process.env.GCP_PROJECT || process.env.GCLOUD_PROJECT || 'demo-project';
   console.log('Initializing Firestore with project:', projectId);
+
+  // Check for emulator mode
+  if (process.env.FIRESTORE_EMULATOR_HOST) {
+    console.log('Connecting to Firestore emulator:', process.env.FIRESTORE_EMULATOR_HOST);
+  }
 
   // Initialize Firebase Admin if not already initialized
   if (getApps().length === 0) {
