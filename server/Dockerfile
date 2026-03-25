@@ -18,9 +18,8 @@ FROM node:20-alpine AS production
 
 WORKDIR /app
 
-# Install runtime dependencies (including OCI CLI)
-RUN apk add --no-cache openssl ca-certificates curl unzip python3 py3-pip && \
-    pip3 install --no-cache-dir oci-cli --break-system-packages
+# Install runtime dependencies
+RUN apk add --no-cache openssl ca-certificates curl
 
 # Security: Run as non-root user
 RUN addgroup -g 1001 -S nodejs && \
@@ -30,14 +29,6 @@ RUN addgroup -g 1001 -S nodejs && \
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
-COPY --from=builder --chown=nodejs:nodejs /app/node_modules/sql.js/dist/sql-wasm.wasm ./dist/
-
-# Copy entrypoint script
-COPY --chown=nodejs:nodejs entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-# Create data directory with proper permissions
-RUN mkdir -p /app/data && chown nodejs:nodejs /app/data
 
 # Set environment
 ENV NODE_ENV=production
@@ -53,6 +44,5 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:8080/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
 
-# Start application with entrypoint
-ENTRYPOINT ["/entrypoint.sh"]
+# Start application
 CMD ["node", "dist/main.js"]
