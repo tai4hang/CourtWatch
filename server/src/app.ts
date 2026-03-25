@@ -10,6 +10,8 @@ import { userRoutes } from './routes/users.js';
 import { notificationRoutes } from './routes/notifications.js';
 import { healthRoutes } from './routes/health.js';
 import { testRoutes } from './routes/test.js';
+import { courtRoutes } from './routes/courts.js';
+import { favoriteRoutes } from './routes/favorites.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { logger } from './utils/logger.js';
 
