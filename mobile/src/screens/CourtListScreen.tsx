@@ -182,7 +182,7 @@ export default function CourtListScreen() {
       <FlatList
         data={filteredCourts}
         renderItem={renderCourt}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id || Math.random().toString()}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         refreshControl={
