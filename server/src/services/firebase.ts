@@ -3,10 +3,16 @@ import { getMessaging, MulticastMessage } from 'firebase-admin/messaging';
 import { logger } from '../utils/logger.js';
 import { notificationModel, courtSubscriptionModel } from '../db/models.js';
 
+// Handle both plain and base64-encoded private key
+let privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+if (!privateKey && process.env.FIREBASE_PRIVATE_KEY_B64) {
+  privateKey = Buffer.from(process.env.FIREBASE_PRIVATE_KEY_B64, 'base64').toString('utf-8');
+}
+
 const serviceAccount = {
   type: 'service_account',
   project_id: 'courtwatch-a4135',
-  private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+  private_key: privateKey,
   client_email: process.env.FIREBASE_CLIENT_EMAIL,
 };
 
