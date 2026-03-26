@@ -20,6 +20,19 @@ const toISOString = (date: any): string | null => {
   return null;
 };
 
+// Calculate distance between two coordinates in km (Haversine formula)
+const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
 const createCourtSchema = z.object({
   name: z.string().min(1),
   address: z.string().min(1),
@@ -89,7 +102,7 @@ export async function courtRoutes(fastify: FastifyInstance) {
     const lat = parseFloat(request.query.lat);
     const lng = parseFloat(request.query.lng);
     const radiusKm = parseFloat(request.query.radius || '10');
-    const limit = Math.min(parseInt(request.query.limit || '20', 10), 50);
+    const limit = Math.min(parseInt(request.query.limit || '20', 10), 500);
 
     if (isNaN(lat) || isNaN(lng)) {
       return reply.status(400).send({ error: 'Invalid coordinates' });
@@ -97,7 +110,24 @@ export async function courtRoutes(fastify: FastifyInstance) {
 
     const courts = await courtModel.findNearby(lat, lng, radiusKm, limit);
 
-    return { courts };
+    // Add lastReported and distance_km for each court
+    const courtsWithMeta = await Promise.all(
+      courts.map(async (court) => {
+        const reports = await courtReportModel.findByCourtId(court.id, 1);
+        const lastReported = reports.length > 0 ? reports[0].created_at : null;
+        
+        // Calculate distance
+        const distance_km = calculateDistance(lat, lng, court.latitude, court.longitude);
+        
+        return {
+          ...court,
+          lastReported: toISOString(lastReported),
+          distance_km,
+        };
+      })
+    );
+
+    return { courts: courtsWithMeta };
   });
 
   // Get court by ID
