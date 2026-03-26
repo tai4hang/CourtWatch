@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import * as Location from 'expo-location';
 import { api } from '../services/api';
 import { theme } from '../theme';
 
@@ -16,8 +17,11 @@ interface Court {
   surface: string;
   hasLights: boolean;
   isFree: boolean;
-  status?: 'green' | 'amber' | 'red';
+  status?: string;
+  lastReported?: string;
 }
+
+type FilterType = 'all' | 'nearby' | 'available';
 
 export default function CourtListScreen() {
   const navigation = useNavigation<any>();
@@ -25,12 +29,27 @@ export default function CourtListScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<FilterType>('all');
+  const [location, setLocation] = useState<{latitude: number; longitude: number} | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       loadCourts();
-    }, [])
+      requestLocation();
+    }, [filter])
   );
+
+  const requestLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({});
+        setLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+      }
+    } catch (error) {
+      console.log('Location error:', error);
+    }
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -40,13 +59,24 @@ export default function CourtListScreen() {
 
   const loadCourts = async () => {
     try {
-      const data = await api.getCourts();
+      let data;
+      if (filter === 'nearby' && location) {
+        data = await api.getNearbyCourts(location.latitude, location.longitude, 10, 500);
+      } else {
+        const status = filter === 'available' ? 'AVAILABLE' : undefined;
+        data = await api.getCourts(1, 500, search, status);
+      }
       setCourts(data.courts || []);
     } catch (error) {
       console.error('Failed to load courts:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearch = (text: string) => {
+    setSearch(text);
+    loadCourts();
   };
 
   const filteredCourts = courts.filter(court =>
@@ -125,6 +155,26 @@ export default function CourtListScreen() {
           onChangeText={setSearch}
         />
       </View>
+      <View style={styles.filterContainer}>
+        <TouchableOpacity 
+          style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]} 
+          onPress={() => setFilter('all')}
+        >
+          <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>All</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.filterButton, filter === 'nearby' && styles.filterButtonActive]} 
+          onPress={() => setFilter('nearby')}
+        >
+          <Text style={[styles.filterText, filter === 'nearby' && styles.filterTextActive]}>Nearby</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.filterButton, filter === 'available' && styles.filterButtonActive]} 
+          onPress={() => setFilter('available')}
+        >
+          <Text style={[styles.filterText, filter === 'available' && styles.filterTextActive]}>Available</Text>
+        </TouchableOpacity>
+      </View>
       <FlatList
         data={filteredCourts}
         renderItem={renderCourt}
@@ -166,6 +216,32 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     borderWidth: 1,
     borderColor: theme.colors.border,
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    gap: 8,
+  },
+  filterButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  filterButtonActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  filterText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    fontWeight: '500',
+  },
+  filterTextActive: {
+    color: '#fff',
   },
   list: {
     padding: 16,

@@ -171,7 +171,7 @@ class ApiClient {
   }
 
   // Courts methods
-  async getCourts(page = 1, limit = 20, search = '') {
+  async getCourts(page = 1, limit = 500, search = '', status?: string) {
     if (USE_MOCK) {
       let courts = [...MOCK_COURTS];
       if (search) {
@@ -181,9 +181,12 @@ class ApiClient {
           c.address.toLowerCase().includes(s)
         );
       }
+      if (status) {
+        courts = courts.filter(c => c.status === status);
+      }
       return { courts, total: courts.length, page, limit };
     }
-    const response = await this.client.get('/courts', { params: { page, limit, search } });
+    const response = await this.client.get('/courts', { params: { page, limit, search, status } });
     return response.data;
   }
 

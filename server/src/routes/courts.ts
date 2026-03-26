@@ -35,11 +35,12 @@ const reportStatusSchema = z.object({
 export async function courtRoutes(fastify: FastifyInstance) {
   // Get all courts
   fastify.get('/', async (request: FastifyRequest<{ 
-    Querystring: { page?: string; limit?: string; search?: string } 
+    Querystring: { page?: string; limit?: string; search?: string; status?: string } 
   }>, reply: FastifyReply) => {
     const page = parseInt(request.query.page || '1', 10);
-    const limit = Math.min(parseInt(request.query.limit || '20', 10), 100);
+    const limit = Math.min(parseInt(request.query.limit || '20', 10), 500);
     const search = request.query.search;
+    const statusFilter = request.query.status;
 
     let courts;
     if (search) {
@@ -60,7 +61,13 @@ export async function courtRoutes(fastify: FastifyInstance) {
       })
     );
 
-    return { courts: courtsWithLastReported };
+    // Filter by status if provided
+    let filteredCourts = courtsWithLastReported;
+    if (statusFilter) {
+      filteredCourts = courtsWithLastReported.filter(c => c.status === statusFilter);
+    }
+
+    return { courts: filteredCourts };
   });
 
   // Get nearby courts
