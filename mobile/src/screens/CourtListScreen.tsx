@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   distanceText: {
-    fontSize: 12,
+    fontSize: 16,
     color: theme.colors.primary,
     fontWeight: '600',
     marginLeft: 'auto',
