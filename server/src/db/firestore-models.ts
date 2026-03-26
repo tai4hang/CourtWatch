@@ -290,6 +290,7 @@ export const courtModel = {
   async create(data: {
     name: string;
     address: string;
+    city?: string;
     latitude: number;
     longitude: number;
     totalCourts: number;
@@ -306,6 +307,7 @@ export const courtModel = {
       id,
       name: data.name,
       address: data.address,
+      city: data.city || null,
       latitude: data.latitude,
       longitude: data.longitude,
       total_courts: data.totalCourts,

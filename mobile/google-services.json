@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "542775745789",
+    "project_id": "courtwatch-a4135",
+    "storage_bucket": "courtwatch-a4135.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:542775745789:android:ad88fc6a51579fb244f294",
+        "android_client_info": {
+          "package_name": "com.og.courtwatch"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBoymxE4a_ajWw3is20CpvJPqw8Px8Tw5w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

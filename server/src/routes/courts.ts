@@ -36,6 +36,7 @@ const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: numbe
 const createCourtSchema = z.object({
   name: z.string().min(1),
   address: z.string().min(1),
+  city: z.string().optional(),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
   totalCourts: z.number().int().positive(),
@@ -93,9 +94,10 @@ export async function courtRoutes(fastify: FastifyInstance) {
       filteredCourts = courtsWithLastReported.filter(c => c.status === statusFilter);
     }
 
-    // Filter by city if provided
+    // Filter by city if provided (supports comma-separated list of cities)
     if (cityFilter && cityFilter !== 'all') {
-      filteredCourts = filteredCourts.filter(c => c.city === cityFilter);
+      const cityList = cityFilter.split(',').map(c => c.trim());
+      filteredCourts = filteredCourts.filter(c => c.city && cityList.includes(c.city));
     }
 
     return { courts: filteredCourts };
@@ -174,6 +176,7 @@ export async function courtRoutes(fastify: FastifyInstance) {
     const court = await courtModel.create({
       name: input.name,
       address: input.address,
+      city: input.city,
       latitude: input.latitude,
       longitude: input.longitude,
       totalCourts: input.totalCourts,

@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ActivityIndicator, RefreshControl, Modal, CheckBox } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ActivityIndicator, RefreshControl, Modal } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
@@ -33,8 +33,8 @@ export default function CourtListScreen() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
   const [showCityModal, setShowCityModal] = useState(false);
-  const [selectedCities, setSelectedCities] = useState<string[]>([]);
-  const cities = ['Markham'];
+  const [cities] = useState<string[]>(['Markham', 'Toronto', 'North York', 'Scarborough', 'Etobicoke', 'Richmond Hill', 'Mississauga', 'Brampton']);
+  const [selectedCities, setSelectedCities] = useState<string[]>(['Markham', 'Toronto', 'North York', 'Scarborough', 'Etobicoke', 'Richmond Hill', 'Mississauga', 'Brampton']);
   const [location, setLocation] = useState<{latitude: number; longitude: number} | null>(null);
 
   useFocusEffect(
@@ -69,7 +69,7 @@ export default function CourtListScreen() {
         data = await api.getNearbyCourts(location.latitude, location.longitude, 10, 500);
       } else {
         const status = filter === 'available' ? 'AVAILABLE' : undefined;
-        const city = selectedCities.length > 0 ? selectedCities[0] : undefined;
+        const city = selectedCities.length > 0 && selectedCities.length < cities.length ? selectedCities.join(',') : undefined;
         data = await api.getCourts(1, 500, search, status, city);
       }
       setCourts(data.courts || []);
@@ -82,6 +82,9 @@ export default function CourtListScreen() {
 
   const handleSearch = (text: string) => {
     setSearch(text);
+  };
+
+  const onSearchSubmit = () => {
     loadCourts();
   };
 
@@ -156,19 +159,23 @@ export default function CourtListScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search courts..."
-          placeholderTextColor="#9CA3AF"
-          value={search}
-          onChangeText={setSearch}
-        />
-        <TouchableOpacity 
-          style={styles.filterIconButton}
-          onPress={() => setShowCityModal(true)}
-        >
-          <Ionicons name="filter" size={22} color={theme.colors.primary} />
-        </TouchableOpacity>
+        <View style={styles.searchInputContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search courts..."
+            placeholderTextColor="#9CA3AF"
+            value={search}
+            onChangeText={handleSearch}
+            onSubmitEditing={onSearchSubmit}
+            returnKeyType="search"
+          />
+          <TouchableOpacity 
+            style={styles.filterIconButton}
+            onPress={() => setShowCityModal(true)}
+          >
+            <Ionicons name="filter" size={22} color={theme.colors.primary} />
+          </TouchableOpacity>
+        </View>
       </View>
       <View style={styles.filterContainer}>
         <TouchableOpacity 
@@ -205,6 +212,76 @@ export default function CourtListScreen() {
           />
         }
       />
+
+      {/* City Filter Modal */}
+      <Modal
+        visible={showCityModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCityModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Filter by City</Text>
+            <TouchableOpacity 
+              style={styles.cityRow}
+              onPress={() => {
+                if (selectedCities.length === cities.length) {
+                  setSelectedCities([]);
+                } else {
+                  setSelectedCities([...cities]);
+                }
+              }}
+            >
+              <View style={[styles.checkbox, selectedCities.length === cities.length && styles.checkboxChecked]}>
+                {selectedCities.length === cities.length && (
+                  <Ionicons name="checkmark" size={16} color="#fff" />
+                )}
+              </View>
+              <Text style={styles.cityText}>All</Text>
+            </TouchableOpacity>
+            {cities.map((city) => (
+              <TouchableOpacity 
+                key={city} 
+                style={styles.cityRow}
+                onPress={() => {
+                  if (selectedCities.includes(city)) {
+                    setSelectedCities(selectedCities.filter((c) => c !== city));
+                  } else {
+                    setSelectedCities([...selectedCities, city]);
+                  }
+                }}
+              >
+                <View style={[styles.checkbox, selectedCities.includes(city) && styles.checkboxChecked]}>
+                  {selectedCities.includes(city) && (
+                    <Ionicons name="checkmark" size={16} color="#fff" />
+                  )}
+                </View>
+                <Text style={styles.cityText}>{city}</Text>
+              </TouchableOpacity>
+            ))}
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton]}
+                onPress={() => {
+                  setSelectedCities([]);
+                }}
+              >
+                <Text style={[styles.modalButtonText, { color: theme.colors.textSecondary }]}>Clear</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, { backgroundColor: theme.colors.primary }]}
+                onPress={() => {
+                  loadCourts();
+                  setShowCityModal(false);
+                }}
+              >
+                <Text style={[styles.modalButtonText, { color: '#fff' }]}>Apply</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -223,14 +300,20 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: theme.colors.surface,
   },
-  searchInput: {
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: theme.colors.background,
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  searchInput: {
+    flex: 1,
+    backgroundColor: 'transparent',
     padding: 12,
     fontSize: 16,
     color: theme.colors.text,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
   },
   filterContainer: {
     flexDirection: 'row',
@@ -352,6 +435,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: theme.colors.text,
     marginLeft: 8,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
   },
   modalButtons: {
     flexDirection: 'row',

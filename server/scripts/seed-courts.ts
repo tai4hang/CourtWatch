@@ -10,6 +10,7 @@ const courts = [
   {
     name: "Ada Mckenzie Park",
     address: "185 South Park Road",
+    city: "Markham",
     location: "Public",
     totalCourts: 2,
     hasLights: false,
@@ -21,6 +22,7 @@ const courts = [
   {
     name: "Armadale Park",
     address: "2401 Denison Street",
+    city: "Markham",
     location: "Armadale Tennis Club",
     totalCourts: 4,
     hasLights: true,
@@ -32,6 +34,7 @@ const courts = [
   {
     name: "Bayview Glen Park",
     address: "48 Limcombe Drive",
+    city: "Markham",
     location: "Public",
     totalCourts: 2,
     hasLights: false,
@@ -43,6 +46,7 @@ const courts = [
   {
     name: "Bayview Reservoir",
     address: "8079 Bayview Avenue",
+    city: "Markham",
     location: "Public",
     totalCourts: 3,
     hasLights: false,
@@ -54,6 +58,7 @@ const courts = [
   {
     name: "Berzcy Park North",
     address: "447 The Bridle Walk",
+    city: "Markham",
     location: "Public",
     totalCourts: 2,
     hasLights: false,
@@ -65,6 +70,7 @@ const courts = [
   {
     name: "Berzcy Park South",
     address: "432 Wilfred Murison Avenue",
+    city: "Markham",
     location: "Public",
     totalCourts: 2,
     hasLights: false,
@@ -76,6 +82,7 @@ const courts = [
   {
     name: "Blowden Davies Park",
     address: "335 Donald Cousens Parkway",
+    city: "Markham",
     location: "Public",
     totalCourts: 2,
     hasLights: false,
@@ -87,6 +94,7 @@ const courts = [
   {
     name: "Boxgrove Community Park",
     address: "346 Boxgrove Bypass",
+    city: "Markham",
     location: "Public",
     totalCourts: 2,
     hasLights: false,
@@ -98,6 +106,7 @@ const courts = [
   {
     name: "Carlton Park",
     address: "101 Carlton Road",
+    city: "Markham",
     location: "Unionville Tennis Club",
     totalCourts: 9,
     hasLights: true,
@@ -109,6 +118,7 @@ const courts = [
   {
     name: "Duncan Park",
     address: "265 Bayview Fairways Drive",
+    city: "Markham",
     location: "Public",
     totalCourts: 3,
     hasLights: true,
@@ -120,6 +130,7 @@ const courts = [
   {
     name: "Frisby Park",
     address: "15 Murison Drive",
+    city: "Markham",
     location: "Public",
     totalCourts: 2,
     hasLights: false,
@@ -131,6 +142,7 @@ const courts = [
   {
     name: "Cornell Community Park",
     address: "371 Cornell Centre Blvd.",
+    city: "Markham",
     location: "Public",
     totalCourts: 2,
     hasLights: true,
@@ -142,6 +154,7 @@ const courts = [
   {
     name: "German Mills Park",
     address: "15 Simonston Boulevard",
+    city: "Markham",
     location: "German Mills Tennis Club",
     totalCourts: 4,
     hasLights: true,
@@ -153,6 +166,7 @@ const courts = [
   {
     name: "Grandview Park",
     address: "135 Doncastor Avenue",
+    city: "Markham",
     location: "Public",
     totalCourts: 2,
     hasLights: true,
@@ -164,6 +178,7 @@ const courts = [
   {
     name: "Henry White Park",
     address: "135 Moss Creek Boulevard",
+    city: "Markham",
     location: "Public",
     totalCourts: 2,
     hasLights: false,
@@ -175,6 +190,7 @@ const courts = [
   {
     name: "Highgate Park",
     address: "37 Highgate Drive",
+    city: "Markham",
     location: "Highgate Tennis Club",
     totalCourts: 3,
     hasLights: true,
@@ -186,6 +202,7 @@ const courts = [
   {
     name: "Johnsview Park",
     address: "27 Porterfield Crescent",
+    city: "Markham",
     location: "Public",
     totalCourts: 2,
     hasLights: true,
@@ -197,6 +214,7 @@ const courts = [
   {
     name: "Laura & Alf Weaver Park",
     address: "190 Williamson Road",
+    city: "Markham",
     location: "Public",
     totalCourts: 2,
     hasLights: false,
@@ -208,6 +226,7 @@ const courts = [
   {
     name: "Morgan Park",
     address: "11 Parkway Avenue",
+    city: "Markham",
     location: "Public",
     totalCourts: 2,
     hasLights: true,
@@ -219,6 +238,7 @@ const courts = [
   {
     name: "Pomona Mills Park",
     address: "200 John Street",
+    city: "Markham",
     location: "Pomona Valley Tennis Club",
     totalCourts: 6,
     hasLights: true,
@@ -230,6 +250,7 @@ const courts = [
   {
     name: "Roy Ramer Park",
     address: "11 James Parrot Ave.",
+    city: "Markham",
     location: "Public",
     totalCourts: 2,
     hasLights: false,
@@ -241,6 +262,7 @@ const courts = [
   {
     name: "Reesor Park",
     address: "73 Wootten Way North",
+    city: "Markham",
     location: "Markham Tennis Club",
     totalCourts: 6,
     hasLights: true,
@@ -252,6 +274,7 @@ const courts = [
   {
     name: "Robinson Park",
     address: "46 Robinson Street",
+    city: "Markham",
     location: "Public",
     totalCourts: 2,
     hasLights: false,
@@ -263,6 +286,7 @@ const courts = [
   {
     name: "Schoolhouse Park",
     address: "7651 Ninth Line",
+    city: "Markham",
     location: "Boxgrove Tennis Club",
     totalCourts: 2,
     hasLights: true,
@@ -274,6 +298,7 @@ const courts = [
   {
     name: "South Unionville Park",
     address: "514 Caboto Trail",
+    city: "Markham",
     location: "Public",
     totalCourts: 2,
     hasLights: false,
@@ -285,6 +310,7 @@ const courts = [
   {
     name: "Toogood Park",
     address: "58 Sciberras Road",
+    city: "Markham",
     location: "Public",
     totalCourts: 2,
     hasLights: false,
@@ -296,6 +322,7 @@ const courts = [
   {
     name: "Wismer Park",
     address: "980 Bur Oak Avenue",
+    city: "Markham",
     location: "Public",
     totalCourts: 2,
     hasLights: false,
@@ -307,6 +334,7 @@ const courts = [
   {
     name: "Warden View Park",
     address: "30 Rouge Valley Drive",
+    city: "Markham",
     location: "Public",
     totalCourts: 2,
     hasLights: false,
