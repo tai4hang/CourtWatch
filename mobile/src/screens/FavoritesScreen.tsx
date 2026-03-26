@@ -23,12 +23,21 @@ interface FavoriteCourt {
 }
 
 const getStatusColor = (status?: string) => {
+  // Map backend status to UI colors
   switch (status) {
-    case 'green': return '#4CAF50';
-
-    case 'amber': return '#FF9800';
-    case 'red': return '#F44336';
-    default: return '#9E9E9E';
+    case 'AVAILABLE':
+    case 'green':
+      return '#4CAF50';
+    case 'NOT_AVAILABLE':
+    case 'amber':
+      return '#FF9800';
+    case 'BUSY':
+    case 'red':
+      return '#F44336';
+    case 'CLOSED':
+      return '#9E9E9E';
+    default:
+      return '#9E9E9E';
   }
 };
 

@@ -48,7 +48,19 @@ export async function courtRoutes(fastify: FastifyInstance) {
       courts = await courtModel.findAll(page, limit);
     }
 
-    return { courts };
+    // Add lastReported from most recent report for each court
+    const courtsWithLastReported = await Promise.all(
+      courts.map(async (court) => {
+        const reports = await courtReportModel.findByCourtId(court.id, 1);
+        const lastReported = reports.length > 0 ? reports[0].created_at : null;
+        return {
+          ...court,
+          lastReported: lastReported ? lastReported.toISOString() : null,
+        };
+      })
+    );
+
+    return { courts: courtsWithLastReported };
   });
 
   // Get nearby courts
@@ -79,9 +91,13 @@ export async function courtRoutes(fastify: FastifyInstance) {
 
     const reports = await courtReportModel.findByCourtId(court.id, 10);
 
+    // Get the most recent report timestamp
+    const lastReported = reports.length > 0 ? reports[0].created_at : null;
+
     return {
       court: {
         ...court,
+        lastReported: lastReported ? lastReported.toISOString() : null,
         reports: reports.map(r => ({
           id: r.id,
           userId: r.user_id,
