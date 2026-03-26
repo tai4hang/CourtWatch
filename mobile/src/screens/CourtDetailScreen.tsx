@@ -4,6 +4,7 @@ import { useRoute, RouteProp, useNavigation, useFocusEffect } from '@react-navig
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker } from 'react-native-maps';
 import { api } from '../services/api';
+import { registerForPushNotifications, subscribeToCourtNotifications, unsubscribeFromCourtNotifications } from '../services/notifications';
 import { theme, styles as themeStyles } from '../theme';
 
 type MainStackParamList = {
@@ -98,8 +99,26 @@ export default function CourtDetailScreen() {
     }
   };
 
-  const handleNotifyToggle = () => {
-    setNotificationEnabled(!notificationEnabled);
+  const handleNotifyToggle = async () => {
+    if (!notificationEnabled) {
+      // Enable notifications - first register for push, then subscribe
+      try {
+        await registerForPushNotifications();
+        await subscribeToCourtNotifications(route.params.courtId);
+        setNotificationEnabled(true);
+      } catch (err) {
+        console.error('Failed to enable notifications:', err);
+        Alert.alert('Error', 'Failed to enable notifications');
+      }
+    } else {
+      // Disable notifications
+      try {
+        await unsubscribeFromCourtNotifications(route.params.courtId);
+        setNotificationEnabled(false);
+      } catch (err) {
+        console.error('Failed to disable notifications:', err);
+      }
+    }
   };
 
   const handleReportStatus = () => {

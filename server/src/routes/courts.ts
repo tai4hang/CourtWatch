@@ -7,6 +7,8 @@ import {
   courtReportModel 
 } from '../db/models.js';
 import { trackEvent, AnalyticsEvents } from '../services/analytics.js';
+import { logger } from '../utils/logger.js';
+import { notifyCourtAvailable } from '../services/firebase.js';
 
 // Helper to convert Date or Timestamp to ISO string
 const toISOString = (date: any): string | null => {
@@ -203,6 +205,9 @@ export async function courtRoutes(fastify: FastifyInstance) {
       return reply.status(404).send({ error: 'Court not found' });
     }
 
+    // Get previous status to check if it changed to AVAILABLE
+    const previousStatus = court.status;
+
     const report = await courtReportModel.create({
       courtId: input.courtId,
       userId: request.user!.id,
@@ -220,6 +225,15 @@ export async function courtRoutes(fastify: FastifyInstance) {
       courtId: input.courtId, 
       status: input.status 
     }, request.user!.id);
+
+    // Send push notification if court became AVAILABLE
+    if (input.status === 'AVAILABLE' && previousStatus !== 'AVAILABLE') {
+      try {
+        await notifyCourtAvailable(input.courtId, court.name, court.city || 'GTA');
+      } catch (err) {
+        logger.error({ err, courtId: input.courtId }, 'Failed to send notification');
+      }
+    }
 
     return { report };
   });

@@ -546,4 +546,67 @@ export const notificationModel = {
     await db().collection(COLLECTIONS.NOTIFICATIONS).doc(id).set(notification);
     return notification;
   },
+
+  async registerPushToken(userId: string, token: string): Promise<void> {
+    const userRef = db().collection(COLLECTIONS.USERS).doc(userId);
+    await userRef.set({ pushToken: token }, { merge: true });
+  },
+
+  async getPushTokensByUserIds(userIds: string[]): Promise<string[]> {
+    if (userIds.length === 0) return [];
+    
+    const tokens: string[] = [];
+    const batch = db().collection(COLLECTIONS.USERS).where('id', 'in', userIds);
+    const snapshot = await batch.get();
+    
+    snapshot.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.pushToken) tokens.push(data.pushToken);
+    });
+    
+    return tokens;
+  },
+};
+
+// Court subscription for notifications
+export interface CourtSubscription {
+  id: string;
+  user_id: string;
+  court_id: string;
+  created_at: Date;
+}
+
+export const courtSubscriptionModel = {
+  async subscribe(userId: string, courtId: string): Promise<void> {
+    const id = `${userId}_${courtId}`;
+    const subscription: CourtSubscription = {
+      id,
+      user_id: userId,
+      court_id: courtId,
+      created_at: new Date(),
+    };
+    
+    await db().collection('court_subscriptions').doc(id).set(subscription, { merge: true });
+  },
+
+  async unsubscribe(userId: string, courtId: string): Promise<void> {
+    const id = `${userId}_${courtId}`;
+    await db().collection('court_subscriptions').doc(id).delete();
+  },
+
+  async getUserSubscriptions(userId: string): Promise<CourtSubscription[]> {
+    const snapshot = await db().collection('court_subscriptions')
+      .where('user_id', '==', userId)
+      .get();
+    
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CourtSubscription));
+  },
+
+  async getSubscribersByCourt(courtId: string): Promise<CourtSubscription[]> {
+    const snapshot = await db().collection('court_subscriptions')
+      .where('court_id', '==', courtId)
+      .get();
+    
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CourtSubscription));
+  },
 };

@@ -326,6 +326,30 @@ class ApiClient {
     const response = await this.client.post('/auth/firebase/register', { idToken, name });
     return response.data;
   }
+
+  async registerPushToken(token: string) {
+    if (USE_MOCK) {
+      return { success: true };
+    }
+    const response = await this.client.post('/notifications/register', { token });
+    return response.data;
+  }
+
+  async subscribeToCourt(courtId: string) {
+    if (USE_MOCK) {
+      return { success: true };
+    }
+    const response = await this.client.post('/notifications/subscribe', { courtId });
+    return response.data;
+  }
+
+  async unsubscribeFromCourt(courtId: string) {
+    if (USE_MOCK) {
+      return { success: true };
+    }
+    const response = await this.client.delete(`/notifications/subscribe/${courtId}`);
+    return response.data;
+  }
 }
 
 export const api = new ApiClient();

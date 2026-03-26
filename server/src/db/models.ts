@@ -6,7 +6,7 @@
  */
 
 export * from './firestore-models.js';
-export { userModel, sessionModel, courtModel, favoriteModel, courtReportModel, subscriptionModel, notificationModel } from './firestore-models.js';
+export { userModel, sessionModel, courtModel, favoriteModel, courtReportModel, subscriptionModel, notificationModel, courtSubscriptionModel } from './firestore-models.js';
 
 // Item model - not used in CourtWatch
 export const itemModel = {
