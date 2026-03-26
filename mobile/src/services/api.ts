@@ -308,6 +308,24 @@ class ApiClient {
     const response = await this.client.post('/auth/google', { idToken });
     return response.data;
   }
+
+  async firebaseLogin(idToken: string) {
+    if (USE_MOCK) {
+      return { user: MOCK_USER, accessToken: this.mockToken };
+    }
+    // Send the Firebase ID token to backend for verification
+    const response = await this.client.post('/auth/firebase', { idToken });
+    return response.data;
+  }
+
+  async firebaseRegister(idToken: string, name: string) {
+    if (USE_MOCK) {
+      return { user: { ...MOCK_USER, name }, accessToken: this.mockToken };
+    }
+    // Send the Firebase ID token + name to backend to create user
+    const response = await this.client.post('/auth/firebase/register', { idToken, name });
+    return response.data;
+  }
 }
 
 export const api = new ApiClient();

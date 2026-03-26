@@ -5,7 +5,7 @@ import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { useAuthStore } from '../store/authStore';
 import { theme, styles as themeStyles } from '../theme';
-import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithCredential, signInWithEmailAndPassword, EmailAuthProvider } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { api } from '../services/api';
 import * as SecureStore from 'expo-secure-store';
@@ -57,10 +57,25 @@ export default function LoginScreen({ navigation }: any) {
 
     setLoading(true);
     try {
-      await login(email, password);
+      // Sign in with Firebase
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const idToken = await userCredential.user.getIdToken();
+      
+      // Send to backend to create session
+      const response = await api.firebaseLogin(idToken);
+      
+      const accessToken = String(response.accessToken || '');
+      const refreshToken = String(response.refreshToken || '');
+      
+      // Store tokens
+      await SecureStore.setItemAsync('accessToken', accessToken);
+      await SecureStore.setItemAsync('refreshToken', refreshToken);
+      
+      // Update auth store
+      await fetchUser();
     } catch (err: any) {
       console.error('Login failed:', err);
-      const message = err?.response?.data?.message || 'Login failed. Please check your credentials.';
+      const message = err.message || 'Login failed. Please check your credentials.';
       setError(message);
       Alert.alert('Login Failed', message);
     } finally {

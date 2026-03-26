@@ -158,6 +158,68 @@ export const authService = {
     }
   },
 
+  async firebaseLogin(idToken: string) {
+    // Firebase login uses the same verification as Google (Firebase issues the tokens)
+    // This is used for email/password sign-in via Firebase Auth
+    return this.googleLogin(idToken);
+  },
+
+  async firebaseRegister(idToken: string, name?: string) {
+    // Similar to Google login but also allows setting the name
+    logger.info({}, 'Firebase registration: starting');
+    
+    try {
+      // Verify Firebase token
+      const firebaseUser = await verifyGoogleToken(idToken);
+      
+      if (!firebaseUser.email) {
+        throw new Error('Firebase account has no email');
+      }
+      
+      // Check if user already exists
+      let user = await userModel.findByEmail(firebaseUser.email);
+      
+      if (user) {
+        // User exists, just log them in
+        logger.info({ email: firebaseUser.email }, 'Firebase user already exists, logging in');
+      } else {
+        // Create new user
+        const randomPassword = Math.random().toString(36).slice(-16) + Date.now().toString(36);
+        const passwordHash = await bcrypt.hash(randomPassword, 4);
+        
+        user = await userModel.create({
+          email: firebaseUser.email,
+          name: name || firebaseUser.name || firebaseUser.email.split('@')[0],
+          passwordHash,
+        });
+      }
+      
+      // Create tokens
+      const accessToken = uuidv4();
+      const refreshToken = uuidv4();
+      
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      await sessionModel.create({
+        userId: user.id,
+        accessToken,
+        refreshToken,
+        expiresAt,
+      });
+      
+      logger.info({ userId: user.id }, 'User registered via Firebase');
+      
+      const { password_hash: _, ...userWithoutPassword } = user;
+      return {
+        user: userWithoutPassword,
+        accessToken,
+        refreshToken,
+      };
+    } catch (err) {
+      logger.error({ err }, 'Firebase registration error');
+      throw err;
+    }
+  },
+
   async validateToken(token: string) {
     try {
       // Check if it's a refresh token (stored in session)

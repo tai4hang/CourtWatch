@@ -102,6 +102,70 @@ export async function authRoutes(fastify: FastifyInstance) {
     };
   });
 
+  // Firebase Email/Password Sign-In
+  fastify.post('/firebase', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { idToken } = request.body as { idToken: string };
+    
+    if (!idToken) {
+      return reply.status(400).send({ message: 'No ID token provided' });
+    }
+    
+    let result;
+    try {
+      result = await authService.firebaseLogin(idToken);
+    } catch (err: any) {
+      logger.error({ err }, 'Firebase login failed');
+      return reply.status(401).send({ message: 'Sign-in failed' });
+    }
+    
+    trackEvent(AnalyticsEvents.USER_LOGIN, { method: 'firebase' }, result.user.id);
+    
+    reply.setCookie('refreshToken', result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60,
+      path: '/',
+    });
+    
+    return {
+      user: result.user,
+      accessToken: result.accessToken,
+    };
+  });
+
+  // Firebase Email/Password Registration
+  fastify.post('/firebase/register', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { idToken, name } = request.body as { idToken: string; name?: string };
+    
+    if (!idToken) {
+      return reply.status(400).send({ message: 'No ID token provided' });
+    }
+    
+    let result;
+    try {
+      result = await authService.firebaseRegister(idToken, name);
+    } catch (err: any) {
+      logger.error({ err }, 'Firebase registration failed');
+      return reply.status(401).send({ message: 'Registration failed' });
+    }
+    
+    trackEvent(AnalyticsEvents.USER_SIGNUP, { method: 'firebase' }, result.user.id);
+    
+    reply.setCookie('refreshToken', result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60,
+      path: '/',
+    });
+    
+    return {
+      user: result.user,
+      accessToken: result.accessToken,
+    };
+  });
+
   // Refresh token
   fastify.post('/refresh', async (request: FastifyRequest, reply: FastifyReply) => {
     const refreshToken = request.cookies.refreshToken || request.body?.refreshToken;
