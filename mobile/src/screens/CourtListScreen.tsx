@@ -19,6 +19,7 @@ interface Court {
   isFree: boolean;
   status?: string;
   lastReported?: string;
+  distance_km?: number;
 }
 
 type FilterType = 'all' | 'nearby' | 'available';
@@ -131,6 +132,9 @@ export default function CourtListScreen() {
             <Text style={styles.courtInfoText}>•</Text>
             <Text style={styles.courtInfoText}>Lights</Text>
           </>
+        )}
+        {item.distance_km !== undefined && (
+          <Text style={styles.distanceText}>{item.distance_km.toFixed(1)} km</Text>
         )}
       </View>
     </TouchableOpacity>
@@ -301,5 +305,11 @@ const styles = StyleSheet.create({
   courtInfoText: {
     fontSize: 12,
     color: theme.colors.textSecondary,
+  },
+  distanceText: {
+    fontSize: 12,
+    color: theme.colors.primary,
+    fontWeight: '600',
+    marginLeft: 'auto',
   },
 });
