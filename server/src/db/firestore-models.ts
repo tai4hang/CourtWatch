@@ -552,6 +552,14 @@ export const notificationModel = {
     await userRef.set({ pushToken: token }, { merge: true });
   },
 
+  async delete(id: string, userId: string): Promise<void> {
+    const docRef = db().collection(COLLECTIONS.NOTIFICATIONS).doc(id);
+    const doc = await docRef.get();
+    if (doc.exists && doc.data()?.user_id === userId) {
+      await docRef.delete();
+    }
+  },
+
   async getPushTokensByUserIds(userIds: string[]): Promise<string[]> {
     if (userIds.length === 0) return [];
     
@@ -608,5 +616,17 @@ export const courtSubscriptionModel = {
       .get();
     
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CourtSubscription));
+  },
+
+  async getUserSubscriptionsWithCourts(userId: string): Promise<(CourtSubscription & { court: Court | null })[]> {
+    const subscriptions = await this.getUserSubscriptions(userId);
+    const result: (CourtSubscription & { court: Court | null })[] = [];
+    
+    for (const sub of subscriptions) {
+      const court = await courtModel.findById(sub.court_id);
+      result.push({ ...sub, court });
+    }
+    
+    return result;
   },
 };

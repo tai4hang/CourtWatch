@@ -350,6 +350,22 @@ class ApiClient {
     const response = await this.client.delete(`/notifications/subscribe/${courtId}`);
     return response.data;
   }
+
+  async getCourtSubscriptions() {
+    if (USE_MOCK) {
+      return { subscriptions: [] };
+    }
+    const response = await this.client.get('/notifications/subscriptions');
+    return response.data;
+  }
+
+  async deleteNotification(id: string) {
+    if (USE_MOCK) {
+      return { success: true };
+    }
+    const response = await this.client.delete(`/notifications/${id}`);
+    return response.data;
+  }
 }
 
 export const api = new ApiClient();

@@ -54,7 +54,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
 
   // Get user's court subscriptions
   fastify.get('/subscriptions', { preHandler: authenticate }, async (request: FastifyRequest) => {
-    const subscriptions = await courtSubscriptionModel.getUserSubscriptions(request.user!.id);
+    const subscriptions = await courtSubscriptionModel.getUserSubscriptionsWithCourts(request.user!.id);
     
     return { subscriptions };
   });
@@ -92,7 +92,9 @@ export async function notificationRoutes(fastify: FastifyInstance) {
 
   // Delete notification
   fastify.delete('/:id', { preHandler: authenticate }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    // For now, just return success (implement delete if needed)
+    const { id } = request.params;
+    await notificationModel.delete(id, request.user!.id);
+    logger.info({ notificationId: id, userId: request.user!.id }, 'Notification deleted');
     return { success: true };
   });
 
