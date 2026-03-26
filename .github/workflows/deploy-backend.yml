@@ -84,15 +84,13 @@ jobs:
       - name: Set Firebase secrets in Secret Manager
       - name: Deploy to Cloud Run
         run: |
-          # Base64 encode Firebase private key to handle special characters
-          FIREBASE_PRIVATE_KEY_B64=$(printf '%s' "${{ secrets.FIREBASE_PRIVATE_KEY }}" | base64 -w0)
-          
           gcloud run deploy ${{ steps.vars.outputs.repo }}-api \
             --image us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/courtwatch/server:${{ steps.vars.outputs.tag }} \
             --platform managed \
             --region us-central1 \
             --allow-unauthenticated \
-            --set-env-vars DB_TYPE=firestore,GCP_PROJECT=${{ secrets.GCP_PROJECT_ID }},FIREBASE_CLIENT_EMAIL=${{ secrets.FIREBASE_CLIENT_EMAIL }},FIREBASE_PRIVATE_KEY_B64=${FIREBASE_PRIVATE_KEY_B64} \
+            --set-env-vars DB_TYPE=firestore,GCP_PROJECT=${{ secrets.GCP_PROJECT_ID }} \
+            --update-secrets=FIREBASE_PRIVATE_KEY=firebase-private-key:latest,FIREBASE_CLIENT_EMAIL=firebase-client-email:latest \
             --service-account ${{ secrets.GCP_SERVICE_ACCOUNT }} \
             --memory 256Mi \
             --cpu 1 \
