@@ -81,7 +81,6 @@ jobs:
           docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/courtwatch/server:${{ steps.vars.outputs.tag }}
           docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/courtwatch/server:latest
 
-      - name: Set Firebase secrets in Secret Manager
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy ${{ steps.vars.outputs.repo }}-api \
