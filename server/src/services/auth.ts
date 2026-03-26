@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../utils/logger.js';
 import { userModel, sessionModel, type User } from '../db/models.js';
+import { verifyGoogleToken } from './firebase-admin.js';
 
 export interface RegisterInput {
   email: string;
@@ -101,6 +102,58 @@ export const authService = {
       };
     } catch (err) {
       logger.error({ err, email }, 'Login error');
+      throw err;
+    }
+  },
+
+  async googleLogin(idToken: string) {
+    logger.info({}, 'Google login: starting');
+    
+    try {
+      // Verify Google token
+      const googleUser = await verifyGoogleToken(idToken);
+      
+      if (!googleUser.email) {
+        throw new Error('Google account has no email');
+      }
+      
+      // Check if user exists
+      let user = await userModel.findByEmail(googleUser.email);
+      
+      if (!user) {
+        // Create new user with random password
+        const randomPassword = Math.random().toString(36).slice(-16) + Date.now().toString(36);
+        const passwordHash = await bcrypt.hash(randomPassword, 4);
+        
+        user = await userModel.create({
+          email: googleUser.email,
+          name: googleUser.name || googleUser.email.split('@')[0],
+          passwordHash,
+        });
+      }
+      
+      // Create tokens
+      const accessToken = uuidv4();
+      const refreshToken = uuidv4();
+      
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      await sessionModel.create({
+        userId: user.id,
+        accessToken,
+        refreshToken,
+        expiresAt,
+      });
+      
+      logger.info({ userId: user.id }, 'User logged in via Google');
+      
+      const { password_hash: _, ...userWithoutPassword } = user;
+      return {
+        user: userWithoutPassword,
+        accessToken,
+        refreshToken,
+      };
+    } catch (err) {
+      logger.error({ err }, 'Google login error');
       throw err;
     }
   },

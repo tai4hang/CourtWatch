@@ -1,5 +1,7 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import { GoogleAuthProvider, signInWithCredential, User } from 'firebase/auth';
+import { auth } from './firebase';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 const USE_MOCK = process.env.EXPO_PUBLIC_USE_MOCK === 'true';
@@ -295,6 +297,15 @@ class ApiClient {
       return { success: true };
     }
     const response = await this.client.post('/auth/logout');
+    return response.data;
+  }
+
+  async googleLogin(idToken: string) {
+    if (USE_MOCK) {
+      return { user: MOCK_USER, accessToken: this.mockToken };
+    }
+    // Send the Google ID token to backend for verification and creating/getting user
+    const response = await this.client.post('/auth/google', { idToken });
     return response.data;
   }
 }

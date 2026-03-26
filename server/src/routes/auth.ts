@@ -70,6 +70,38 @@ export async function authRoutes(fastify: FastifyInstance) {
     };
   });
 
+  // Google Sign-In
+  fastify.post('/google', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { idToken } = request.body as { idToken: string };
+    
+    if (!idToken) {
+      return reply.status(400).send({ message: 'No ID token provided' });
+    }
+    
+    let result;
+    try {
+      result = await authService.googleLogin(idToken);
+    } catch (err: any) {
+      logger.error({ err }, 'Google login failed');
+      return reply.status(401).send({ message: 'Google sign-in failed' });
+    }
+    
+    trackEvent(AnalyticsEvents.USER_LOGIN, { method: 'google' }, result.user.id);
+    
+    reply.setCookie('refreshToken', result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60,
+      path: '/',
+    });
+    
+    return {
+      user: result.user,
+      accessToken: result.accessToken,
+    };
+  });
+
   // Refresh token
   fastify.post('/refresh', async (request: FastifyRequest, reply: FastifyReply) => {
     const refreshToken = request.cookies.refreshToken || request.body?.refreshToken;

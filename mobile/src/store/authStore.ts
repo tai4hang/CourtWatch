@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import { api } from '../services/api';
+import { GoogleAuthProvider, signInWithCredential, User as FirebaseUser } from 'firebase/auth';
+import { auth } from '../services/firebase';
 
 interface User {
   id: string;
@@ -28,6 +30,7 @@ interface AuthState {
   initialize: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name?: string) => Promise<void>;
+  googleLogin: () => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (data: Partial<User>) => void;
   fetchUser: () => Promise<void>;
@@ -94,6 +97,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       user: response.user,
       isAuthenticated: true,
     });
+  },
+
+  googleLogin: async () => {
+    // This will be triggered by the Google Sign-In button
+    // The actual sign-in happens in the component using the Firebase SDK
+    // Here we just store the tokens from the backend response
+    throw new Error('Google login must be initiated from the UI component');
   },
 
   logout: async () => {
