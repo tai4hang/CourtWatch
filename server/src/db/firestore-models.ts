@@ -321,6 +321,13 @@ export const courtModel = {
     await db().collection(COLLECTIONS.COURTS).doc(id).set(court);
     return court;
   },
+
+  async updateStatus(courtId: string, status: string): Promise<void> {
+    await db().collection(COLLECTIONS.COURTS).doc(courtId).update({
+      status,
+      updated_at: new Date(),
+    });
+  },
 };
 
 // Favorite operations

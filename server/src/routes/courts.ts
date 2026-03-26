@@ -139,6 +139,9 @@ export async function courtRoutes(fastify: FastifyInstance) {
       reportType: input.reportType,
     });
 
+    // Update court status and timestamp
+    await courtModel.updateStatus(input.courtId, input.status);
+
     trackEvent(AnalyticsEvents.COURT_REPORTED, { 
       courtId: input.courtId, 
       status: input.status 

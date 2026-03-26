@@ -102,9 +102,15 @@ export default function CourtDetailScreen() {
     if (!court) return;
     setReporting(true);
     try {
+      // Map UI status to backend status
+      const statusMap: Record<string, string> = {
+        'green': 'AVAILABLE',
+        'amber': 'NOT_AVAILABLE',
+        'red': 'BUSY',
+      };
       await api.reportCourt({
         courtId: court.id,
-        status: newStatus as 'green' | 'amber' | 'red',
+        status: statusMap[newStatus] || newStatus,
       });
       setCourt({ ...court, status: newStatus as any });
       Alert.alert(
