@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ActivityIndicator, RefreshControl, Modal, CheckBox } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { api } from '../services/api';
 import { theme } from '../theme';
@@ -31,6 +32,9 @@ export default function CourtListScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
+  const [showCityModal, setShowCityModal] = useState(false);
+  const [selectedCities, setSelectedCities] = useState<string[]>([]);
+  const cities = ['Markham'];
   const [location, setLocation] = useState<{latitude: number; longitude: number} | null>(null);
 
   useFocusEffect(
@@ -65,7 +69,8 @@ export default function CourtListScreen() {
         data = await api.getNearbyCourts(location.latitude, location.longitude, 10, 500);
       } else {
         const status = filter === 'available' ? 'AVAILABLE' : undefined;
-        data = await api.getCourts(1, 500, search, status);
+        const city = selectedCities.length > 0 ? selectedCities[0] : undefined;
+        data = await api.getCourts(1, 500, search, status, city);
       }
       setCourts(data.courts || []);
     } catch (error) {
@@ -158,6 +163,12 @@ export default function CourtListScreen() {
           value={search}
           onChangeText={setSearch}
         />
+        <TouchableOpacity 
+          style={styles.filterIconButton}
+          onPress={() => setShowCityModal(true)}
+        >
+          <Ionicons name="filter" size={22} color={theme.colors.primary} />
+        </TouchableOpacity>
       </View>
       <View style={styles.filterContainer}>
         <TouchableOpacity 
@@ -311,5 +322,50 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     fontWeight: '600',
     marginLeft: 'auto',
+  },
+  filterIconButton: {
+    padding: 8,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+  },
+  modalContent: {
+    backgroundColor: theme.colors.surface,
+    margin: 20,
+    borderRadius: 12,
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.colors.text,
+    marginBottom: 16,
+  },
+  cityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  cityText: {
+    fontSize: 16,
+    color: theme.colors.text,
+    marginLeft: 8,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 20,
+    gap: 12,
+  },
+  modalButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
   },
 });

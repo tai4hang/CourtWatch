@@ -44,6 +44,7 @@ export interface Court {
   id: string;
   name: string;
   address: string;
+  city: string | null;
   latitude: number;
   longitude: number;
   total_courts: number;
