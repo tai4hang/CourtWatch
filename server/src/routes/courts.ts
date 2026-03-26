@@ -8,6 +8,18 @@ import {
 } from '../db/models.js';
 import { trackEvent, AnalyticsEvents } from '../services/analytics.js';
 
+// Helper to convert Date or Timestamp to ISO string
+const toISOString = (date: any): string | null => {
+  if (!date) return null;
+  if (typeof date.toISOString === 'function') {
+    return date.toISOString();
+  }
+  if (date._seconds) {
+    return new Date(date._seconds * 1000).toISOString();
+  }
+  return null;
+};
+
 const createCourtSchema = z.object({
   name: z.string().min(1),
   address: z.string().min(1),
@@ -56,7 +68,7 @@ export async function courtRoutes(fastify: FastifyInstance) {
         const lastReported = reports.length > 0 ? reports[0].created_at : null;
         return {
           ...court,
-          lastReported: lastReported ? lastReported.toISOString() : null,
+          lastReported: toISOString(lastReported) : null,
         };
       })
     );
@@ -104,7 +116,7 @@ export async function courtRoutes(fastify: FastifyInstance) {
     return {
       court: {
         ...court,
-        lastReported: lastReported ? lastReported.toISOString() : null,
+        lastReported: toISOString(lastReported) : null,
         reports: reports.map(r => ({
           id: r.id,
           userId: r.user_id,
@@ -113,7 +125,7 @@ export async function courtRoutes(fastify: FastifyInstance) {
           waitTimeMinutes: r.wait_time_minutes,
           status: r.status,
           reportType: r.report_type,
-          createdAt: r.created_at,
+          createdAt: toISOString(r.created_at),
         })),
       },
     };
@@ -234,7 +246,7 @@ export async function courtRoutes(fastify: FastifyInstance) {
         waitTimeMinutes: r.wait_time_minutes,
         status: r.status,
         reportType: r.report_type,
-        createdAt: r.created_at,
+        createdAt: toISOString(r.created_at),
       })),
     };
   });
