@@ -68,7 +68,7 @@ export async function courtRoutes(fastify: FastifyInstance) {
         const lastReported = reports.length > 0 ? reports[0].created_at : null;
         return {
           ...court,
-          lastReported: toISOString(lastReported) : null,
+          lastReported: toISOString(lastReported),
         };
       })
     );
@@ -116,7 +116,7 @@ export async function courtRoutes(fastify: FastifyInstance) {
     return {
       court: {
         ...court,
-        lastReported: toISOString(lastReported) : null,
+        lastReported: toISOString(lastReported),
         reports: reports.map(r => ({
           id: r.id,
           userId: r.user_id,
