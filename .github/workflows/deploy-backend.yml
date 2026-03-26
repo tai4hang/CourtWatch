@@ -81,37 +81,20 @@ jobs:
           docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/courtwatch/server:${{ steps.vars.outputs.tag }}
           docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/courtwatch/server:latest
 
-      - name: Deploy to Cloud Run (initial)
+      - name: Deploy to Cloud Run
         run: |
           gcloud run deploy ${{ steps.vars.outputs.repo }}-api \
             --image us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/courtwatch/server:${{ steps.vars.outputs.tag }} \
             --platform managed \
             --region us-central1 \
             --allow-unauthenticated \
-            --set-env-vars DB_TYPE=firestore,GCP_PROJECT=${{ secrets.GCP_PROJECT_ID }} \
+            --set-env-vars DB_TYPE=firestore,GCP_PROJECT=${{ secrets.GCP_PROJECT_ID }},FIREBASE_PRIVATE_KEY=${{ secrets.FIREBASE_PRIVATE_KEY }},FIREBASE_CLIENT_EMAIL=${{ secrets.FIREBASE_CLIENT_EMAIL }} \
             --service-account ${{ secrets.GCP_SERVICE_ACCOUNT }} \
             --memory 256Mi \
             --cpu 1 \
             --min-instances 0 \
             --max-instances 1 \
             --concurrency 80
-
-      - name: Set Firebase secrets (using Secret Manager)
-        if: success()
-        run: |
-          # Write Firebase private key to temp file
-          echo "${{ secrets.FIREBASE_PRIVATE_KEY }}" > /tmp/firebase_key.json
-          
-          # Create or update secrets in Secret Manager
-          echo -n "${{ secrets.FIREBASE_PRIVATE_KEY }}" | gcloud secrets create firebase-private-key --replication-policy=automatic --project=${{ secrets.GCP_PROJECT_ID }} 2>/dev/null || echo -n "${{ secrets.FIREBASE_PRIVATE_KEY }}" | gcloud secrets versions add firebase-private-key --data-file=- --project=${{ secrets.GCP_PROJECT_ID }}
-          
-          echo -n "${{ secrets.FIREBASE_CLIENT_EMAIL }}" | gcloud secrets create firebase-client-email --replication-policy=automatic --project=${{ secrets.GCP_PROJECT_ID }} 2>/dev/null || echo -n "${{ secrets.FIREBASE_CLIENT_EMAIL }}" | gcloud secrets versions add firebase-client-email --data-file=- --project=${{ secrets.GCP_PROJECT_ID }}
-          
-          # Add secrets to Cloud Run service
-          gcloud run services update ${{ steps.vars.outputs.repo }}-api \
-            --update-secrets=FIREBASE_PRIVATE_KEY=firebase-private-key:latest,FIREBASE_CLIENT_EMAIL=firebase-client-email:latest \
-            --platform managed \
-            --region us-central1
 
       - name: Get Cloud Run URL
         id: cloudrun
