@@ -114,25 +114,16 @@ export async function courtRoutes(fastify: FastifyInstance) {
     const radiusKm = parseFloat(request.query.radius || '10');
     const limit = Math.min(parseInt(request.query.limit || '20', 10), 500);
 
-    // Validate coordinates
-    if (isNaN(lat) || isNaN(lng) || lat === undefined || lng === undefined) {
-      console.error('Invalid coordinates:', { lat, lng, query: request.query });
+    if (isNaN(lat) || isNaN(lng)) {
       return reply.status(400).send({ error: 'Invalid coordinates' });
     }
 
-    console.log('findNearby called with:', { lat, lng, radiusKm, limit });
     const courts = await courtModel.findNearby(lat, lng, radiusKm, limit);
 
     // Add lastReported and distance_km for each court
     const courtsWithMeta = await Promise.all(
       courts.map(async (court) => {
-        // Validate court has valid id
-        if (!court.id) {
-          console.error('Court missing id:', court);
-          return { ...court, lastReported: null, distance_km: 0 };
-        }
-        
-        const reports = await courtReportModel.findByCourtId(String(court.id), 1);
+        const reports = await courtReportModel.findByCourtId(court.id, 1);
         const lastReported = reports.length > 0 ? reports[0].created_at : null;
         
         // Calculate distance
@@ -145,6 +136,9 @@ export async function courtRoutes(fastify: FastifyInstance) {
         };
       })
     );
+
+    // Sort by distance
+    courtsWithMeta.sort((a, b) => a.distance_km - b.distance_km);
 
     return { courts: courtsWithMeta };
   });
