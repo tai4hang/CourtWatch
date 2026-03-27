@@ -262,7 +262,12 @@ export const courtModel = {
     
     return snapshot.docs
       .map(doc => {
-        const court = doc.data() as Court;
+        const data = doc.data();
+        // Skip documents with undefined coordinates
+        if (data.latitude === undefined || data.longitude === undefined) {
+          return null;
+        }
+        const court = data as Court;
         // Calculate actual distance
         const R = 6371; // Earth's radius in km
         const dLat = (court.latitude - lat) * Math.PI / 180;
@@ -274,6 +279,7 @@ export const courtModel = {
         const distance = R * c;
         return { ...court, distance_km: distance };
       })
+      .filter((c): c is Court & { distance_km: number } => c !== null)
       .sort((a, b) => a.distance_km - b.distance_km);
   },
 
