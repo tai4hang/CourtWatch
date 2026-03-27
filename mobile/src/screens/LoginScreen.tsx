@@ -78,7 +78,7 @@ export default function LoginScreen({ navigation }: any) {
       
       // Update auth store
       await fetchUser();
-      navigation.replace('Courts');
+      navigation.replace('Tab');
     } catch (err: any) {
       console.error('Login failed:', err);
       const message = err.message || 'Login failed. Please check your credentials.';
@@ -131,7 +131,7 @@ export default function LoginScreen({ navigation }: any) {
       
       // Update auth store
       await fetchUser();
-      navigation.replace('Courts');
+      navigation.replace('Tab');
     } catch (err: any) {
       console.error('Google callback failed:', err);
       setError(err.message || 'Google sign-in failed. Please try again.');
