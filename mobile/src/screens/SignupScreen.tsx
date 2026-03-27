@@ -15,6 +15,7 @@ export default function SignupScreen({ navigation }: any) {
   const [name, setName] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
+  const [showPassword, setShowPassword] = React.useState(false);
   const [error, setError] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [googleLoading, setGoogleLoading] = React.useState(false);
@@ -151,13 +152,13 @@ export default function SignupScreen({ navigation }: any) {
 
   return (
     <View style={themeStyles.container}>
-      <Text style={themeStyles.title}>Create Account</Text>
+      <Text style={styles.title}>Create an Account</Text>
       
       {error ? <Text style={themeStyles.errorText}>{error}</Text> : null}
       
       <TextInput
         style={themeStyles.input}
-        placeholder="Name"
+        placeholder="Full Name"
         placeholderTextColor="#999"
         value={name}
         onChangeText={(text) => {
@@ -168,7 +169,7 @@ export default function SignupScreen({ navigation }: any) {
       />
       <TextInput
         style={themeStyles.input}
-        placeholder="Email"
+        placeholder="Enter your email"
         placeholderTextColor="#999"
         value={email}
         onChangeText={(text) => {
@@ -179,18 +180,30 @@ export default function SignupScreen({ navigation }: any) {
         keyboardType="email-address"
         autoComplete="email"
       />
-      <TextInput
-        style={themeStyles.input}
-        placeholder="Password"
-        placeholderTextColor="#999"
-        value={password}
-        onChangeText={(text) => {
-          setPassword(text);
-          setError('');
-        }}
-        secureTextEntry
-        autoComplete="password-new"
-      />
+      <View style={styles.passwordContainer}>
+        <TextInput
+          style={[themeStyles.input, styles.passwordInput]}
+          placeholder="Enter password"
+          placeholderTextColor="#999"
+          value={password}
+          onChangeText={(text) => {
+            setPassword(text);
+            setError('');
+          }}
+          secureTextEntry={!showPassword}
+          autoComplete="password-new"
+        />
+        <TouchableOpacity 
+          style={styles.eyeIcon} 
+          onPress={() => setShowPassword(!showPassword)}
+        >
+          <Ionicons 
+            name={showPassword ? 'eye-off' : 'eye'} 
+            size={24} 
+            color="#666" 
+          />
+        </TouchableOpacity>
+      </View>
       <TouchableOpacity 
         style={[themeStyles.button, loading && styles.buttonDisabled]} 
         onPress={handleSignup}
@@ -226,6 +239,25 @@ export default function SignupScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
+  title: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+    color: theme.colors.text,
+  },
+  passwordContainer: {
+    position: 'relative',
+  },
+  passwordInput: {
+    paddingRight: 50,
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 15,
+    top: '50%',
+    marginTop: -12,
+  },
   linkHighlight: {
     fontWeight: '600',
     textDecorationLine: 'underline' as const,
