@@ -25,7 +25,6 @@ export default function LoginScreen({ navigation }: any) {
     androidClientId: '542775745789-ad88fc6a51579fb244f294.apps.googleusercontent.com',
     webClientId: '542775745789.apps.googleusercontent.com',
     scopes: ['openid', 'email', 'profile'],
-    // Use Expo Go's redirect URL for proper OAuth flow
     redirectUri: makeRedirectUri({
       native: 'com.courtwatch.app://oauth2callback',
     }),
