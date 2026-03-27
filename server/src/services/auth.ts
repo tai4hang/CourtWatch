@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../utils/logger.js';
 import { userModel, sessionModel, type User } from '../db/models.js';
+import { verifyGoogleToken } from './firebase-admin.js';
 
 export interface RegisterInput {
   email: string;
@@ -44,6 +45,7 @@ export const authService = {
       const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
       await sessionModel.create({
         userId: user.id,
+        accessToken,
         refreshToken,
         expiresAt,
       });
@@ -85,6 +87,7 @@ export const authService = {
       const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
       await sessionModel.create({
         userId: user.id,
+        accessToken,
         refreshToken,
         expiresAt,
       });
@@ -100,6 +103,165 @@ export const authService = {
     } catch (err) {
       logger.error({ err, email }, 'Login error');
       throw err;
+    }
+  },
+
+  async googleLogin(idToken: string) {
+    logger.info({}, 'Google login: starting');
+    
+    try {
+      // Verify Google token
+      const googleUser = await verifyGoogleToken(idToken);
+      
+      if (!googleUser.email) {
+        throw new Error('Google account has no email');
+      }
+      
+      // Check if user exists
+      let user = await userModel.findByEmail(googleUser.email);
+      
+      if (!user) {
+        // Create new user with random password
+        const randomPassword = Math.random().toString(36).slice(-16) + Date.now().toString(36);
+        const passwordHash = await bcrypt.hash(randomPassword, 4);
+        
+        user = await userModel.create({
+          email: googleUser.email,
+          name: googleUser.name || googleUser.email.split('@')[0],
+          passwordHash,
+        });
+      }
+      
+      // Create tokens
+      const accessToken = uuidv4();
+      const refreshToken = uuidv4();
+      
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      await sessionModel.create({
+        userId: user.id,
+        accessToken,
+        refreshToken,
+        expiresAt,
+      });
+      
+      logger.info({ userId: user.id }, 'User logged in via Google');
+      
+      const { password_hash: _, ...userWithoutPassword } = user;
+      return {
+        user: userWithoutPassword,
+        accessToken,
+        refreshToken,
+      };
+    } catch (err) {
+      logger.error({ err }, 'Google login error');
+      throw err;
+    }
+  },
+
+  async firebaseLogin(idToken: string) {
+    // Firebase login uses the same verification as Google (Firebase issues the tokens)
+    // This is used for email/password sign-in via Firebase Auth
+    return this.googleLogin(idToken);
+  },
+
+  async firebaseRegister(idToken: string, name?: string) {
+    // Similar to Google login but also allows setting the name
+    logger.info({}, 'Firebase registration: starting');
+    
+    try {
+      // Verify Firebase token
+      const firebaseUser = await verifyGoogleToken(idToken);
+      
+      if (!firebaseUser.email) {
+        throw new Error('Firebase account has no email');
+      }
+      
+      // Check if user already exists
+      let user = await userModel.findByEmail(firebaseUser.email);
+      
+      if (user) {
+        // User exists, just log them in
+        logger.info({ email: firebaseUser.email }, 'Firebase user already exists, logging in');
+      } else {
+        // Create new user
+        const randomPassword = Math.random().toString(36).slice(-16) + Date.now().toString(36);
+        const passwordHash = await bcrypt.hash(randomPassword, 4);
+        
+        user = await userModel.create({
+          email: firebaseUser.email,
+          name: name || firebaseUser.name || firebaseUser.email.split('@')[0],
+          passwordHash,
+        });
+      }
+      
+      // Create tokens
+      const accessToken = uuidv4();
+      const refreshToken = uuidv4();
+      
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      await sessionModel.create({
+        userId: user.id,
+        accessToken,
+        refreshToken,
+        expiresAt,
+      });
+      
+      logger.info({ userId: user.id }, 'User registered via Firebase');
+      
+      const { password_hash: _, ...userWithoutPassword } = user;
+      return {
+        user: userWithoutPassword,
+        accessToken,
+        refreshToken,
+      };
+    } catch (err) {
+      logger.error({ err }, 'Firebase registration error');
+      throw err;
+    }
+  },
+
+  async validateToken(token: string) {
+    try {
+      // Check if it's a refresh token (stored in session)
+      const userFromRefresh = await sessionModel.findByRefreshToken(token);
+      if (userFromRefresh) {
+        return {
+          id: userFromRefresh.id,
+          email: userFromRefresh.email,
+          role: userFromRefresh.role,
+        };
+      }
+
+      // Check if it's an access token (stored in session)
+      const userFromAccess = await sessionModel.findByAccessToken(token);
+      if (userFromAccess) {
+        return {
+          id: userFromAccess.id,
+          email: userFromAccess.email,
+          role: userFromAccess.role,
+        };
+      }
+
+      return null;
+    } catch (err) {
+      logger.error({ err, token }, 'Validate token error');
+      return null;
+    }
+  },
+
+  async logout(token: string) {
+    try {
+      // Delete session if it's a refresh token
+      const session = await sessionModel.findByRefreshToken(token);
+      if (session) {
+        await sessionModel.delete(session.id);
+      }
+      // For access tokens, we could invalidate them by removing from user record
+      // For now just return success
+      return true;
+    } catch (err) {
+      logger.error({ err }, 'Logout error');
+      return false;
     }
   },
 };

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../services/api';
@@ -23,12 +23,21 @@ interface FavoriteCourt {
 }
 
 const getStatusColor = (status?: string) => {
+  // Map backend status to UI colors
   switch (status) {
-    case 'green': return '#4CAF50';
-
-    case 'amber': return '#FF9800';
-    case 'red': return '#F44336';
-    default: return '#9E9E9E';
+    case 'AVAILABLE':
+    case 'green':
+      return '#4CAF50';
+    case 'NOT_AVAILABLE':
+    case 'amber':
+      return '#FF9800';
+    case 'BUSY':
+    case 'red':
+      return '#F44336';
+    case 'CLOSED':
+      return '#9E9E9E';
+    default:
+      return '#9E9E9E';
   }
 };
 
@@ -36,6 +45,7 @@ export default function FavoritesScreen() {
   const navigation = useNavigation<any>();
   const [favorites, setFavorites] = useState<FavoriteCourt[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -51,8 +61,14 @@ export default function FavoritesScreen() {
       console.error('Failed to load favorites:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadFavorites();
+  }, []);
 
   const handleRemoveFavorite = async (courtId: string) => {
     try {
@@ -120,6 +136,14 @@ export default function FavoritesScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[theme.colors.primary]}
+            tintColor={theme.colors.primary}
+          />
+        }
       />
     </View>
   );

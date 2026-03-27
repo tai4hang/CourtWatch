@@ -1,18 +1,44 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import ScreenContainer from '../components/ScreenContainer';
-import { useNotificationStore, CourtNotification } from '../store/notificationStore';
 import { theme, styles as themeStyles } from '../theme';
+import { api } from '../services/api';
+
+interface CourtSubscription {
+  id: string;
+  court_id: string;
+  court?: {
+    id: string;
+    name: string;
+    address: string;
+    city: string | null;
+  };
+  created_at: string;
+}
 
 export default function NotificationsScreen() {
-  const navigation = useNavigation<any>();
-  const { notifications, loadNotifications, removeNotification, isLoading } = useNotificationStore();
+  const [subscriptions, setSubscriptions] = useState<CourtSubscription[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadNotifications();
+  const loadSubscriptions = useCallback(async () => {
+    try {
+      setLoading(true);
+      const { subscriptions: subs } = await api.getCourtSubscriptions();
+      setSubscriptions(subs || []);
+    } catch (error) {
+      console.error('Failed to load subscriptions:', error);
+      setSubscriptions([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadSubscriptions();
+    }, [loadSubscriptions])
+  );
 
   const handleRemove = (courtId: string, courtName: string) => {
     Alert.alert(
@@ -20,67 +46,63 @@ export default function NotificationsScreen() {
       `Stop receiving notifications for ${courtName}?`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Remove', 
+        {
+          text: 'Remove',
           style: 'destructive',
-          onPress: () => removeNotification(courtId)
+          onPress: async () => {
+            try {
+              await api.unsubscribeFromCourt(courtId);
+              setSubscriptions(prev => prev.filter(s => s.court_id !== courtId));
+            } catch (error) {
+              console.error('Failed to remove subscription:', error);
+              Alert.alert('Error', 'Failed to remove notification');
+            }
+          },
         },
       ]
     );
   };
 
-  const handleCourtPress = (courtId: string) => {
-    navigation.navigate('CourtDetail', { courtId });
-  };
-
-  const renderNotification = ({ item }: { item: CourtNotification }) => (
+  const renderItem = ({ item }: { item: CourtSubscription }) => (
     <View style={styles.card}>
-      <TouchableOpacity 
-        style={styles.cardContent}
-        onPress={() => handleCourtPress(item.courtId)}
+      <View style={styles.cardContent}>
+        <Text style={styles.courtName}>{item.court?.name || 'Unknown Court'}</Text>
+        <Text style={styles.courtAddress}>{item.court?.address || item.court_id}</Text>
+        {item.court?.city && (
+          <Text style={styles.courtCity}>{item.court.city}</Text>
+        )}
+      </View>
+      <TouchableOpacity
+        style={styles.removeButton}
+        onPress={() => handleRemove(item.court_id, item.court?.name || 'this court')}
       >
-        <View style={styles.courtInfo}>
-          <Text style={styles.courtName}>{item.courtName}</Text>
-          <Text style={styles.enabledText}>
-            Enabled {new Date(item.enabledAt).toLocaleDateString()}
-          </Text>
-        </View>
-        <TouchableOpacity 
-          style={styles.removeButton}
-          onPress={() => handleRemove(item.courtId, item.courtName)}
-        >
-          <Ionicons name="close-circle" size={28} color={theme.colors.error} />
-        </TouchableOpacity>
+        <Text style={styles.removeButtonText}>Remove</Text>
       </TouchableOpacity>
     </View>
   );
 
-  if (isLoading) {
-    return (
-      <ScreenContainer>
-        <View style={styles.content}>
-          <Text style={styles.loadingText}>Loading...</Text>
-        </View>
-      </ScreenContainer>
-    );
-  }
-
   return (
     <ScreenContainer>
       <View style={styles.content}>
-        {notifications.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Ionicons name="notifications-outline" size={48} color={theme.colors.textSecondary} />
-            <Text style={styles.emptyText}>No notifications yet</Text>
+        <Text style={styles.title}>Court Notifications</Text>
+        <Text style={styles.subtitle}>Manage your court update notifications</Text>
+        
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+          </View>
+        ) : subscriptions.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No court notifications</Text>
             <Text style={styles.emptySubtext}>
-              Tap "Notify Me" on a court detail page to get notified when its status changes
+              Subscribe to courts from the court list to receive status updates
             </Text>
           </View>
         ) : (
           <FlatList
-            data={notifications}
-            renderItem={renderNotification}
-            keyExtractor={(item) => item.courtId}
+            data={subscriptions}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
           />
@@ -93,7 +115,40 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   content: {
     flex: 1,
-    padding: 16,
+    padding: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: theme.colors.text,
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginBottom: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.text,
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
   },
   listContent: {
     paddingBottom: 20,
@@ -103,14 +158,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-  },
-  cardContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  courtInfo: {
+  cardContent: {
     flex: 1,
+    marginRight: 12,
   },
   courtName: {
     fontSize: 16,
@@ -118,36 +172,24 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     marginBottom: 4,
   },
-  enabledText: {
+  courtAddress: {
     fontSize: 13,
     color: theme.colors.textSecondary,
   },
+  courtCity: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
+  },
   removeButton: {
-    padding: 4,
+    backgroundColor: theme.colors.error || '#FF3B30',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
-  emptyCard: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingBottom: 100,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: theme.colors.text,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptySubtext: {
+  removeButtonText: {
+    color: '#FFFFFF',
     fontSize: 14,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-    paddingHorizontal: 32,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 40,
+    fontWeight: '600',
   },
 });

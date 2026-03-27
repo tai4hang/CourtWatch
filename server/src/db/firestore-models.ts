@@ -44,6 +44,7 @@ export interface Court {
   id: string;
   name: string;
   address: string;
+  city: string | null;
   latitude: number;
   longitude: number;
   total_courts: number;
@@ -169,26 +170,30 @@ export const sessionModel = {
   async findByAccessToken(accessToken: string): Promise<User | null> {
     const snapshot = await db().collection('sessions')
       .where('access_token', '==', accessToken)
-      .where('expires_at', '>', new Date())
       .limit(1)
       .get();
     
     if (snapshot.empty) return null;
     
     const session = snapshot.docs[0].data() as Session;
+    // Check expiration in code (Firestore doesn't support > on non-equality fields without index)
+    if (new Date(session.expires_at) <= new Date()) return null;
+    
     return userModel.findById(session.user_id);
   },
 
   async findByRefreshToken(refreshToken: string): Promise<User | null> {
     const snapshot = await db().collection('sessions')
       .where('refresh_token', '==', refreshToken)
-      .where('expires_at', '>', new Date())
       .limit(1)
       .get();
     
     if (snapshot.empty) return null;
     
     const session = snapshot.docs[0].data() as Session;
+    // Check expiration in code
+    if (new Date(session.expires_at) <= new Date()) return null;
+    
     return userModel.findById(session.user_id);
   },
 
@@ -289,6 +294,7 @@ export const courtModel = {
   async create(data: {
     name: string;
     address: string;
+    city?: string;
     latitude: number;
     longitude: number;
     totalCourts: number;
@@ -305,6 +311,7 @@ export const courtModel = {
       id,
       name: data.name,
       address: data.address,
+      city: data.city || null,
       latitude: data.latitude,
       longitude: data.longitude,
       total_courts: data.totalCourts,
@@ -320,6 +327,13 @@ export const courtModel = {
     
     await db().collection(COLLECTIONS.COURTS).doc(id).set(court);
     return court;
+  },
+
+  async updateStatus(courtId: string, status: string): Promise<void> {
+    await db().collection(COLLECTIONS.COURTS).doc(courtId).update({
+      status,
+      updated_at: new Date(),
+    });
   },
 };
 
@@ -535,5 +549,88 @@ export const notificationModel = {
     
     await db().collection(COLLECTIONS.NOTIFICATIONS).doc(id).set(notification);
     return notification;
+  },
+
+  async registerPushToken(userId: string, token: string): Promise<void> {
+    const userRef = db().collection(COLLECTIONS.USERS).doc(userId);
+    await userRef.set({ pushToken: token }, { merge: true });
+  },
+
+  async delete(id: string, userId: string): Promise<void> {
+    const docRef = db().collection(COLLECTIONS.NOTIFICATIONS).doc(id);
+    const doc = await docRef.get();
+    if (doc.exists && doc.data()?.user_id === userId) {
+      await docRef.delete();
+    }
+  },
+
+  async getPushTokensByUserIds(userIds: string[]): Promise<string[]> {
+    if (userIds.length === 0) return [];
+    
+    const tokens: string[] = [];
+    const batch = db().collection(COLLECTIONS.USERS).where('id', 'in', userIds);
+    const snapshot = await batch.get();
+    
+    snapshot.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.pushToken) tokens.push(data.pushToken);
+    });
+    
+    return tokens;
+  },
+};
+
+// Court subscription for notifications
+export interface CourtSubscription {
+  id: string;
+  user_id: string;
+  court_id: string;
+  created_at: Date;
+}
+
+export const courtSubscriptionModel = {
+  async subscribe(userId: string, courtId: string): Promise<void> {
+    const id = `${userId}_${courtId}`;
+    const subscription: CourtSubscription = {
+      id,
+      user_id: userId,
+      court_id: courtId,
+      created_at: new Date(),
+    };
+    
+    await db().collection('court_subscriptions').doc(id).set(subscription, { merge: true });
+  },
+
+  async unsubscribe(userId: string, courtId: string): Promise<void> {
+    const id = `${userId}_${courtId}`;
+    await db().collection('court_subscriptions').doc(id).delete();
+  },
+
+  async getUserSubscriptions(userId: string): Promise<CourtSubscription[]> {
+    const snapshot = await db().collection('court_subscriptions')
+      .where('user_id', '==', userId)
+      .get();
+    
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CourtSubscription));
+  },
+
+  async getSubscribersByCourt(courtId: string): Promise<CourtSubscription[]> {
+    const snapshot = await db().collection('court_subscriptions')
+      .where('court_id', '==', courtId)
+      .get();
+    
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CourtSubscription));
+  },
+
+  async getUserSubscriptionsWithCourts(userId: string): Promise<(CourtSubscription & { court: Court | null })[]> {
+    const subscriptions = await this.getUserSubscriptions(userId);
+    const result: (CourtSubscription & { court: Court | null })[] = [];
+    
+    for (const sub of subscriptions) {
+      const court = await courtModel.findById(sub.court_id);
+      result.push({ ...sub, court });
+    }
+    
+    return result;
   },
 };

@@ -1,5 +1,7 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import { GoogleAuthProvider, signInWithCredential, User } from 'firebase/auth';
+import { auth } from './firebase';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 const USE_MOCK = process.env.EXPO_PUBLIC_USE_MOCK === 'true';
@@ -150,7 +152,7 @@ class ApiClient {
     if (USE_MOCK) {
       return { user: MOCK_USER };
     }
-    const response = await this.client.get('/auth/me');
+    const response = await this.client.get('/users/me');
     return response.data;
   }
 
@@ -158,7 +160,7 @@ class ApiClient {
     if (USE_MOCK) {
       return { user: MOCK_USER };
     }
-    const response = await this.client.get('/auth/me');
+    const response = await this.client.get('/users/me');
     return response.data;
   }
 
@@ -172,7 +174,7 @@ class ApiClient {
   }
 
   // Courts methods
-  async getCourts(page = 1, limit = 20, search = '') {
+  async getCourts(page = 1, limit = 500, search = '', status?: string, city?: string) {
     if (USE_MOCK) {
       let courts = [...MOCK_COURTS];
       if (search) {
@@ -182,9 +184,15 @@ class ApiClient {
           c.address.toLowerCase().includes(s)
         );
       }
+      if (status) {
+        courts = courts.filter(c => c.status === status);
+      }
+      if (city && city !== 'all') {
+        courts = courts.filter(c => c.city === city);
+      }
       return { courts, total: courts.length, page, limit };
     }
-    const response = await this.client.get('/courts', { params: { page, limit, search } });
+    const response = await this.client.get('/courts', { params: { page, limit, search, status, city } });
     return response.data;
   }
 
@@ -243,6 +251,15 @@ class ApiClient {
     return response.data;
   }
 
+  async reportCourtStatus(courtId: string, data: any) {
+    if (USE_MOCK) {
+      return { success: true };
+    }
+    // Backend expects POST /courts/report with courtId in body
+    const response = await this.client.post('/courts/report', { courtId, ...data });
+    return response.data;
+  }
+
   async reportCourt(data: any) {
     if (USE_MOCK) {
       return { success: true };
@@ -281,6 +298,73 @@ class ApiClient {
       return { success: true };
     }
     const response = await this.client.post('/auth/logout');
+    return response.data;
+  }
+
+  async googleLogin(idToken: string) {
+    if (USE_MOCK) {
+      return { user: MOCK_USER, accessToken: this.mockToken };
+    }
+    // Send the Google ID token to backend for verification and creating/getting user
+    const response = await this.client.post('/auth/google', { idToken });
+    return response.data;
+  }
+
+  async firebaseLogin(idToken: string) {
+    if (USE_MOCK) {
+      return { user: MOCK_USER, accessToken: this.mockToken };
+    }
+    // Send the Firebase ID token to backend for verification
+    const response = await this.client.post('/auth/firebase', { idToken });
+    return response.data;
+  }
+
+  async firebaseRegister(idToken: string, name: string) {
+    if (USE_MOCK) {
+      return { user: { ...MOCK_USER, name }, accessToken: this.mockToken };
+    }
+    // Send the Firebase ID token + name to backend to create user
+    const response = await this.client.post('/auth/firebase/register', { idToken, name });
+    return response.data;
+  }
+
+  async registerPushToken(token: string) {
+    if (USE_MOCK) {
+      return { success: true };
+    }
+    const response = await this.client.post('/notifications/register', { token });
+    return response.data;
+  }
+
+  async subscribeToCourt(courtId: string) {
+    if (USE_MOCK) {
+      return { success: true };
+    }
+    const response = await this.client.post('/notifications/subscribe', { courtId });
+    return response.data;
+  }
+
+  async unsubscribeFromCourt(courtId: string) {
+    if (USE_MOCK) {
+      return { success: true };
+    }
+    const response = await this.client.delete(`/notifications/subscribe/${courtId}`);
+    return response.data;
+  }
+
+  async getCourtSubscriptions() {
+    if (USE_MOCK) {
+      return { subscriptions: [] };
+    }
+    const response = await this.client.get('/notifications/subscriptions');
+    return response.data;
+  }
+
+  async deleteNotification(id: string) {
+    if (USE_MOCK) {
+      return { success: true };
+    }
+    const response = await this.client.delete(`/notifications/${id}`);
     return response.data;
   }
 }

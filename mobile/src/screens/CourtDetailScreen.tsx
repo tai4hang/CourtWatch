@@ -4,7 +4,7 @@ import { useRoute, RouteProp, useNavigation, useFocusEffect } from '@react-navig
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker } from 'react-native-maps';
 import { api } from '../services/api';
-import { useNotificationStore } from '../store/notificationStore';
+import { registerForPushNotifications, subscribeToCourtNotifications, unsubscribeFromCourtNotifications } from '../services/notifications';
 import { theme, styles as themeStyles } from '../theme';
 
 type MainStackParamList = {
@@ -35,23 +35,14 @@ export default function CourtDetailScreen() {
   const [error, setError] = useState('');
   const [isFavorite, setIsFavorite] = useState(false);
   const [addingFavorite, setAddingFavorite] = useState(false);
+  const [notificationEnabled, setNotificationEnabled] = useState(false);
   const [reporting, setReporting] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Notification store
-  const { 
-    notifications, 
-    loadNotifications, 
-    addNotification, 
-    removeNotification, 
-    isNotificationEnabled 
-  } = useNotificationStore();
-
   useFocusEffect(
     useCallback(() => {
       loadCourt();
-      loadNotifications();
     }, [route.params.courtId])
   );
 
@@ -90,23 +81,43 @@ export default function CourtDetailScreen() {
   };
 
   const getStatusColor = (status?: string) => {
+    // Map backend status to UI colors
     switch (status) {
-      case 'green': return '#4CAF50';
-
-      case 'amber': return '#FF9800';
-      case 'red': return '#F44336';
-      default: return '#9E9E9E';
+      case 'AVAILABLE':
+      case 'green':
+        return '#4CAF50';
+      case 'NOT_AVAILABLE':
+      case 'amber':
+        return '#FF9800';
+      case 'BUSY':
+      case 'red':
+        return '#F44336';
+      case 'CLOSED':
+        return '#9E9E9E';
+      default:
+        return '#9E9E9E';
     }
   };
 
-  const notificationEnabled = court ? isNotificationEnabled(court.id) : false;
-
   const handleNotifyToggle = async () => {
-    if (!court) return;
-    if (notificationEnabled) {
-      await removeNotification(court.id);
+    if (!notificationEnabled) {
+      // Enable notifications - first register for push, then subscribe
+      try {
+        await registerForPushNotifications();
+        await subscribeToCourtNotifications(route.params.courtId);
+        setNotificationEnabled(true);
+      } catch (err) {
+        console.error('Failed to enable notifications:', err);
+        Alert.alert('Error', 'Failed to enable notifications');
+      }
     } else {
-      await addNotification(court.id, court.name);
+      // Disable notifications
+      try {
+        await unsubscribeFromCourtNotifications(route.params.courtId);
+        setNotificationEnabled(false);
+      } catch (err) {
+        console.error('Failed to disable notifications:', err);
+      }
     }
   };
 
@@ -119,9 +130,15 @@ export default function CourtDetailScreen() {
     if (!court) return;
     setReporting(true);
     try {
+      // Map UI status to backend status
+      const statusMap: Record<string, string> = {
+        'green': 'AVAILABLE',
+        'amber': 'NOT_AVAILABLE',
+        'red': 'BUSY',
+      };
       await api.reportCourt({
         courtId: court.id,
-        status: newStatus as 'green' | 'amber' | 'red',
+        status: statusMap[newStatus] || newStatus,
       });
       setCourt({ ...court, status: newStatus as any });
       Alert.alert(
