@@ -114,10 +114,13 @@ export async function courtRoutes(fastify: FastifyInstance) {
     const radiusKm = parseFloat(request.query.radius || '10');
     const limit = Math.min(parseInt(request.query.limit || '20', 10), 500);
 
-    if (isNaN(lat) || isNaN(lng)) {
+    // Validate coordinates
+    if (isNaN(lat) || isNaN(lng) || lat === undefined || lng === undefined) {
+      console.error('Invalid coordinates:', { lat, lng, query: request.query });
       return reply.status(400).send({ error: 'Invalid coordinates' });
     }
 
+    console.log('findNearby called with:', { lat, lng, radiusKm, limit });
     const courts = await courtModel.findNearby(lat, lng, radiusKm, limit);
 
     // Add lastReported and distance_km for each court

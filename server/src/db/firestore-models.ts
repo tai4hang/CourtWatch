@@ -248,15 +248,27 @@ export const courtModel = {
   },
 
   async findNearby(lat: number, lng: number, radiusKm: number, limit = 20): Promise<(Court & { distance_km: number })[]> {
+    // Validate inputs - Firestore rejects undefined values
+    if (typeof lat !== 'number' || typeof lng !== 'number' || isNaN(lat) || isNaN(lng)) {
+      console.error('Invalid coordinates for findNearby:', { lat, lng });
+      return [];
+    }
+    
     // Simple bounding box query - Firestore doesn't support geo queries natively
     const latDelta = radiusKm / 111.0;
     const lngDelta = radiusKm / (111.0 * Math.cos(lat * Math.PI / 180));
     
+    // Use Number() to ensure we pass valid numbers to Firestore
+    const minLat = Number(lat) - Number(latDelta);
+    const maxLat = Number(lat) + Number(latDelta);
+    const minLng = Number(lng) - Number(lngDelta);
+    const maxLng = Number(lng) + Number(lngDelta);
+    
     const snapshot = await db().collection(COLLECTIONS.COURTS)
-      .where('latitude', '>=', lat - latDelta)
-      .where('latitude', '<=', lat + latDelta)
-      .where('longitude', '>=', lng - lngDelta)
-      .where('longitude', '<=', lng + lngDelta)
+      .where('latitude', '>=', minLat)
+      .where('latitude', '<=', maxLat)
+      .where('longitude', '>=', minLng)
+      .where('longitude', '<=', maxLng)
       .limit(limit)
       .get();
     
