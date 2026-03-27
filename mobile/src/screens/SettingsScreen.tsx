@@ -44,6 +44,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   content: {
     padding: 20,
+    paddingBottom: 140,
   },
   card: {
     backgroundColor: theme.colors.surface,
