@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import ScreenContainer from '../components/ScreenContainer';
 import { theme, styles as themeStyles } from '../theme';
@@ -20,6 +20,7 @@ interface CourtSubscription {
 export default function NotificationsScreen() {
   const [subscriptions, setSubscriptions] = useState<CourtSubscription[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadSubscriptions = useCallback(async () => {
     try {
@@ -31,8 +32,14 @@ export default function NotificationsScreen() {
       setSubscriptions([]);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadSubscriptions();
+  }, [loadSubscriptions]);
 
   useFocusEffect(
     useCallback(() => {
@@ -105,6 +112,15 @@ export default function NotificationsScreen() {
             renderItem={renderItem}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
+            style={{ flex: 1 }}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={[theme.colors.primary]}
+                tintColor={theme.colors.primary}
+              />
+            }
           />
         )}
       </View>
@@ -151,7 +167,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   listContent: {
-    paddingBottom: 20,
+    paddingBottom: 120,
   },
   card: {
     backgroundColor: theme.colors.surface,

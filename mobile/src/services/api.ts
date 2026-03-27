@@ -4,6 +4,7 @@ import { GoogleAuthProvider, signInWithCredential, User } from 'firebase/auth';
 import { auth } from './firebase';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+console.log('API: Using base URL:', API_BASE_URL);
 const USE_MOCK = process.env.EXPO_PUBLIC_USE_MOCK === 'true';
 
 // Mock data
@@ -85,10 +86,12 @@ class ApiClient {
   constructor() {
     this.client = axios.create({
       baseURL: `${API_BASE_URL}/api`,
-      timeout: 10000,
+      timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
       },
+      // Allow self-signed certs for development
+      validateStatus: () => true,
     });
 
     this.setupInterceptors();
@@ -99,10 +102,14 @@ class ApiClient {
       async (config) => {
         try {
           const token = await SecureStore.getItemAsync('accessToken') || this.mockToken;
+          console.log('API interceptor: token exists:', !!token);
           if (token && config.headers) {
             config.headers.set('Authorization', `Bearer ${token}`, false);
           }
-        } catch (e) {}
+          console.log('API request:', config.method?.toUpperCase(), config.url);
+        } catch (e) {
+          console.log('API interceptor error:', e);
+        }
         return config;
       },
       (error) => Promise.reject(error)
@@ -110,7 +117,10 @@ class ApiClient {
 
     this.client.interceptors.response.use(
       (response) => response,
-      (error) => Promise.reject(error)
+      (error) => {
+        console.log('API response error:', error.message, error.code);
+        return Promise.reject(error);
+      }
     );
   }
 
@@ -160,16 +170,26 @@ class ApiClient {
     if (USE_MOCK) {
       return { user: MOCK_USER };
     }
-    const response = await this.client.get('/users/me');
-    return response.data;
+    console.log('API: calling GET /users/me');
+    console.log('API: full URL:', this.client.defaults.baseURL + '/users/me');
+    try {
+      const response = await this.client.get('/users/me');
+      console.log('API: got response status:', response.status);
+      return response.data;
+    } catch (err: any) {
+      console.log('API getMe error:', err.message, err.code);
+      console.log('API getMe config:', err.config?.url, err.config?.baseURL);
+      throw err;
+    }
   }
 
   async getSubscription() {
     if (USE_MOCK) {
       return { subscription: null };
     }
-    const response = await this.client.get('/subscription');
-    return response.data;
+    // Use /users/me which already includes subscription data
+    const response = await this.client.get('/users/me');
+    return { subscription: response.data.subscription };
   }
 
   // Courts methods
@@ -313,9 +333,15 @@ class ApiClient {
     if (USE_MOCK) {
       return { user: MOCK_USER, accessToken: this.mockToken };
     }
-    // Send the Firebase ID token to backend for verification
-    const response = await this.client.post('/auth/firebase', { idToken });
-    return response.data;
+    console.log('API: calling firebaseLogin');
+    try {
+      const response = await this.client.post('/auth/firebase', { idToken });
+      console.log('API: firebaseLogin success, status:', response.status);
+      return response.data;
+    } catch (err: any) {
+      console.log('API firebaseLogin error:', err.message);
+      throw err;
+    }
   }
 
   async firebaseRegister(idToken: string, name: string) {

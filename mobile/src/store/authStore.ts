@@ -49,10 +49,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         try {
           await get().fetchUser();
         } catch (err: any) {
-          // Token invalid/expired - clear and re-throw to set isAuthenticated false
-          console.warn('Token invalid, clearing auth state');
+          // Token invalid/expired - clear and set unauthenticated
+          console.warn('Token invalid, clearing auth state:', err.message);
           await SecureStore.deleteItemAsync('accessToken');
           await SecureStore.deleteItemAsync('refreshToken');
+          set({ isAuthenticated: false });
         }
       }
     } catch (error) {
@@ -75,13 +76,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       user: response.user,
       isAuthenticated: true,
     });
-    
-    // Fetch full user data after login (catch to not break login if it fails)
-    try {
-      await get().fetchUser();
-    } catch (e) {
-      console.log('fetchUser failed, using login response user');
-    }
   },
 
   register: async (email: string, password: string, name?: string) => {
@@ -126,13 +120,29 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   fetchUser: async () => {
-    const { user } = await api.getMe();
-    const { subscription } = await api.getSubscription();
-    
-    set({
-      user,
-      subscription: subscription || null,
-      isAuthenticated: true,
-    });
+    try {
+      console.log('fetchUser: calling api.getMe()...');
+      const response = await api.getMe();
+      console.log('fetchUser: received response:', JSON.stringify(response).substring(0, 200));
+      
+      const user = response.user;
+      const subscription = response.subscription;
+      
+      console.log('fetchUser: parsed user:', user?.id, 'subscription:', subscription?.status);
+      
+      if (!user) {
+        throw new Error('No user data in response');
+      }
+      
+      set({
+        user,
+        subscription: subscription || null,
+        isAuthenticated: true,
+      });
+      console.log('fetchUser: set state complete');
+    } catch (error) {
+      console.error('fetchUser error:', error);
+      throw error;
+    }
   },
 }));

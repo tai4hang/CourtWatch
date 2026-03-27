@@ -186,26 +186,26 @@ export default function CourtListScreen() {
             <Ionicons name="filter" size={22} color={theme.colors.primary} />
           </TouchableOpacity>
         </View>
-      </View>
-      <View style={styles.filterContainer}>
-        <TouchableOpacity 
-          style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]} 
-          onPress={() => setFilter('all')}
-        >
-          <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>All</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.filterButton, filter === 'nearby' && styles.filterButtonActive]} 
-          onPress={() => setFilter('nearby')}
-        >
-          <Text style={[styles.filterText, filter === 'nearby' && styles.filterTextActive]}>Nearby</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.filterButton, filter === 'available' && styles.filterButtonActive]} 
-          onPress={() => setFilter('available')}
-        >
-          <Text style={[styles.filterText, filter === 'available' && styles.filterTextActive]}>Available</Text>
-        </TouchableOpacity>
+        <View style={styles.filterContainer}>
+          <TouchableOpacity 
+            style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]} 
+            onPress={() => setFilter('all')}
+          >
+            <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>All</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.filterButton, filter === 'nearby' && styles.filterButtonActive]} 
+            onPress={() => setFilter('nearby')}
+          >
+            <Text style={[styles.filterText, filter === 'nearby' && styles.filterTextActive]}>Nearby</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.filterButton, filter === 'available' && styles.filterButtonActive]} 
+            onPress={() => setFilter('available')}
+          >
+            <Text style={[styles.filterText, filter === 'available' && styles.filterTextActive]}>Available</Text>
+          </TouchableOpacity>
+        </View>
       </View>
       <FlatList
         data={filteredCourts}
@@ -307,7 +307,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   searchContainer: {
-    padding: 16,
+    padding: 12,
+    paddingBottom: 6,
     backgroundColor: theme.colors.surface,
   },
   searchInputContainer: {
@@ -327,9 +328,8 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    gap: 8,
+    paddingTop: 8,
+    gap: 6,
   },
   filterButton: {
     paddingHorizontal: 16,
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
   },
   list: {
     padding: 16,
-    paddingBottom: 100, // Account for bottom tab bar
+    paddingBottom: 120,
   },
   courtCard: {
     backgroundColor: theme.colors.surface,

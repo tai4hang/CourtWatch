@@ -95,6 +95,7 @@ export default function SignupScreen({ navigation }: any) {
       
       // Update auth store
       await fetchUser();
+      navigation.replace('Tab');
     } catch (err: any) {
       console.error('Signup failed:', err);
       const message = err.message || 'Registration failed. Please try again.';
