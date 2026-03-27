@@ -39,19 +39,12 @@ export default function CourtListScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      requestLocation().then(() => {
-        loadCourts();
-      });
-    }, [filter])
-  );
-
-  // Reload when location changes
-  useFocusEffect(
-    useCallback(() => {
-      if (location && filter === 'nearby') {
+      // Only load on first mount or refresh
+      if (courts.length === 0) {
         loadCourts();
       }
-    }, [location, filter])
+      requestLocation();
+    }, [])
   );
 
   const requestLocation = async () => {
@@ -68,20 +61,27 @@ export default function CourtListScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadCourts();
+    if (filter === 'nearby') {
+      await loadNearbyCourts();
+    } else {
+      await loadCourts();
+    }
     setRefreshing(false);
+  };
+
+  // Handle filter change - switch view without API call if already loaded
+  const handleFilterChange = (newFilter: FilterType) => {
+    setFilter(newFilter);
+    // If switching to nearby and we don't have nearby data, load it
+    if (newFilter === 'nearby' && location && courts.length > 0) {
+      loadNearbyCourts();
+    }
   };
 
   const loadCourts = async () => {
     try {
-      let data;
-      if (filter === 'nearby' && location) {
-        data = await api.getNearbyCourts(location.latitude, location.longitude, 10, 500);
-      } else {
-        const status = filter === 'available' ? 'AVAILABLE' : undefined;
-        const city = selectedCities.length > 0 && selectedCities.length < cities.length ? selectedCities.join(',') : undefined;
-        data = await api.getCourts(1, 500, search, status, city);
-      }
+      // Load all courts once (no filter params) and filter locally
+      const data = await api.getCourts(1, 500);
       setCourts(data.courts || []);
     } catch (error) {
       console.error('Failed to load courts:', error);
@@ -90,18 +90,48 @@ export default function CourtListScreen() {
     }
   };
 
+  const loadNearbyCourts = async () => {
+    if (!location) return;
+    try {
+      const data = await api.getNearbyCourts(location.latitude, location.longitude, 10, 500);
+      setCourts(data.courts || []);
+    } catch (error) {
+      console.error('Failed to load nearby courts:', error);
+    }
+  };
+
   const handleSearch = (text: string) => {
     setSearch(text);
   };
 
   const onSearchSubmit = () => {
-    loadCourts();
+    // Search is handled locally via filteredCourts
   };
 
-  const filteredCourts = courts.filter(court =>
-    court.name.toLowerCase().includes(search.toLowerCase()) ||
-    court.address.toLowerCase().includes(search.toLowerCase())
-  );
+  // Filter courts locally (no API calls)
+  const filteredCourts = courts.filter(court => {
+    // Search filter
+    const matchesSearch = !search || 
+      court.name.toLowerCase().includes(search.toLowerCase()) ||
+      court.address.toLowerCase().includes(search.toLowerCase());
+
+    // City filter
+    const matchesCity = selectedCities.length === 0 || selectedCities.length === cities.length ||
+      (court.city && selectedCities.includes(court.city));
+
+    // Status filter (All, Nearby, Available)
+    if (filter === 'available') {
+      return matchesSearch && matchesCity && court.status === 'AVAILABLE';
+    }
+    // Nearby doesn't filter by status, it sorts by distance
+    return matchesSearch && matchesCity;
+  }).sort((a, b) => {
+    // Sort by distance when nearby filter is active
+    if (filter === 'nearby' && a.distance_km !== undefined && b.distance_km !== undefined) {
+      return a.distance_km - b.distance_km;
+    }
+    return 0;
+  });
 
   const getStatusColor = (status?: string) => {
     // Map backend status to UI colors
@@ -189,19 +219,19 @@ export default function CourtListScreen() {
         <View style={styles.filterContainer}>
           <TouchableOpacity 
             style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]} 
-            onPress={() => setFilter('all')}
+            onPress={() => handleFilterChange('all')}
           >
             <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>All</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.filterButton, filter === 'nearby' && styles.filterButtonActive]} 
-            onPress={() => setFilter('nearby')}
+            onPress={() => handleFilterChange('nearby')}
           >
             <Text style={[styles.filterText, filter === 'nearby' && styles.filterTextActive]}>Nearby</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.filterButton, filter === 'available' && styles.filterButtonActive]} 
-            onPress={() => setFilter('available')}
+            onPress={() => handleFilterChange('available')}
           >
             <Text style={[styles.filterText, filter === 'available' && styles.filterTextActive]}>Available</Text>
           </TouchableOpacity>
@@ -213,6 +243,7 @@ export default function CourtListScreen() {
         keyExtractor={(item) => item.id || Math.random().toString()}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        style={{ flex: 1 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -282,7 +313,7 @@ export default function CourtListScreen() {
               <TouchableOpacity
                 style={[styles.modalButton, { backgroundColor: theme.colors.primary }]}
                 onPress={() => {
-                  loadCourts();
+                  // Filtering is local, just close modal
                   setShowCityModal(false);
                 }}
               >
