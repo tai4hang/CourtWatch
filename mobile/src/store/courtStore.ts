@@ -95,7 +95,8 @@ export const useCourtStore = create<CourtState>((set, get) => ({
   fetchFavorites: async () => {
     set({ isLoading: true, error: null });
     try {
-      const { courts } = await api.getFavoriteCourts();
+      const { favorites } = await api.getFavorites();
+      const courts = favorites?.map((f: any) => f.court) || [];
       set({ favorites: courts, isLoading: false });
     } catch (error: any) {
       set({ error: error.message || 'Failed to fetch favorites', isLoading: false });
@@ -114,7 +115,8 @@ export const useCourtStore = create<CourtState>((set, get) => ({
 
   fetchCourtReports: async (courtId: string, limit = 20) => {
     try {
-      const { reports } = await api.getCourtReports(courtId, limit);
+      // API doesn't have getCourtReports - return empty for now
+      const reports: any[] = [];
       set({ reports });
     } catch (error: any) {
       set({ error: error.message || 'Failed to fetch reports' });
@@ -123,7 +125,7 @@ export const useCourtStore = create<CourtState>((set, get) => ({
 
   addFavorite: async (courtId: string) => {
     try {
-      await api.addFavoriteCourt(courtId);
+      await api.addFavorite(courtId);
       // Update local state
       const courts = get().courts.map(c => 
         c.id === courtId ? { ...c, isFavorite: true } : c
@@ -142,7 +144,7 @@ export const useCourtStore = create<CourtState>((set, get) => ({
 
   removeFavorite: async (courtId: string) => {
     try {
-      await api.removeFavoriteCourt(courtId);
+      await api.removeFavorite(courtId);
       // Update local state
       const courts = get().courts.map(c => 
         c.id === courtId ? { ...c, isFavorite: false } : c

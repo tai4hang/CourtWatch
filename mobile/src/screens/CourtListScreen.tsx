@@ -6,6 +6,18 @@ import * as Location from 'expo-location';
 import { api } from '../services/api';
 import { theme } from '../theme';
 
+// Haversine formula to calculate distance between two coordinates
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+};
+
 interface Court {
   id: string;
   name: string;
@@ -37,11 +49,13 @@ export default function CourtListScreen() {
   const [cities] = useState<string[]>(['Markham', 'Toronto', 'North York', 'Scarborough', 'Etobicoke', 'Richmond Hill', 'Mississauga', 'Brampton']);
   const [selectedCities, setSelectedCities] = useState<string[]>(['Markham', 'Toronto', 'North York', 'Scarborough', 'Etobicoke', 'Richmond Hill', 'Mississauga', 'Brampton']);
   const [location, setLocation] = useState<{latitude: number; longitude: number} | null>(null);
+  const [nearbyLoading, setNearbyLoading] = useState(false);
+  const [nearbyCourtsCache, setNearbyCourtsCache] = useState<Court[] | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       // Only load on first mount or refresh
-      if (courts.length === 0) {
+      if (allCourts.length === 0) {
         loadCourts();
       }
       requestLocation();
@@ -63,6 +77,8 @@ export default function CourtListScreen() {
   const onRefresh = async () => {
     setRefreshing(true);
     if (filter === 'nearby') {
+      // Clear cache to force fresh API call
+      setNearbyCourtsCache(null);
       await loadNearbyCourts();
     } else {
       await loadCourts();
@@ -71,15 +87,29 @@ export default function CourtListScreen() {
   };
 
   // Handle filter change - switch view without API call if already loaded
-  const handleFilterChange = (newFilter: FilterType) => {
+  const handleFilterChange = async (newFilter: FilterType) => {
     // If switching from nearby to another filter, restore all courts
     if (filter === 'nearby' && newFilter !== 'nearby') {
       setCourts(allCourts);
     }
     setFilter(newFilter);
-    // If switching to nearby and we don't have nearby data, load it
-    if (newFilter === 'nearby' && location && allCourts.length > 0) {
-      loadNearbyCourts();
+    // If switching to nearby, load nearby courts
+    if (newFilter === 'nearby') {
+      // Use cached nearby courts if available (don't reload)
+      if (nearbyCourtsCache) {
+        setCourts(nearbyCourtsCache);
+        return;
+      }
+      // Request location if not available
+      if (!location) {
+        await requestLocation();
+      }
+      if (location) {
+        loadNearbyCourts();
+      } else {
+        // Calculate distance from last known location or use all courts
+        console.log('Location not available for nearby');
+      }
     }
   };
 
@@ -99,11 +129,28 @@ export default function CourtListScreen() {
 
   const loadNearbyCourts = async () => {
     if (!location) return;
+    setNearbyLoading(true);
     try {
-      const data = await api.getNearbyCourts(location.latitude, location.longitude, 10, 500);
-      setCourts(data.courts || []);
+      // Only get top 20 nearby courts
+      const data = await api.getNearbyCourts(location.latitude, location.longitude, 10, 20);
+      let nearbyCourts = data.courts || [];
+      
+      // Fallback: calculate distance locally if API didn't provide it
+      if (nearbyCourts.length > 0 && nearbyCourts[0].distance_km === undefined) {
+        nearbyCourts = nearbyCourts.map((court: Court) => ({
+          ...court,
+          distance_km: calculateDistance(location.latitude, location.longitude, court.latitude, court.longitude)
+        }));
+        // Sort by distance
+        nearbyCourts.sort((a: Court, b: Court) => (a.distance_km || 0) - (b.distance_km || 0));
+      }
+      
+      setCourts(nearbyCourts);
+      setNearbyCourtsCache(nearbyCourts);
     } catch (error) {
       console.error('Failed to load nearby courts:', error);
+    } finally {
+      setNearbyLoading(false);
     }
   };
 
@@ -139,6 +186,12 @@ export default function CourtListScreen() {
     }
     return 0;
   });
+
+  // Calculate counts for filter buttons
+  const allCount = allCourts.length;
+  const availableCount = allCourts.filter(c => c.status === 'AVAILABLE').length;
+  // Nearby shows same count as All when not on Nearby filter (same data)
+  const nearbyCount = filter === 'nearby' ? courts.length : allCount;
 
   const getStatusColor = (status?: string) => {
     // Map backend status to UI colors
@@ -228,22 +281,31 @@ export default function CourtListScreen() {
             style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]} 
             onPress={() => handleFilterChange('all')}
           >
-            <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>All ({allCourts.length})</Text>
+            <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>All ({allCount})</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.filterButton, filter === 'nearby' && styles.filterButtonActive]} 
             onPress={() => handleFilterChange('nearby')}
           >
-            <Text style={[styles.filterText, filter === 'nearby' && styles.filterTextActive]}>Nearby</Text>
+            <Text style={[styles.filterText, filter === 'nearby' && styles.filterTextActive]}>Nearby ({nearbyCount || '-'})</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.filterButton, filter === 'available' && styles.filterButtonActive]} 
             onPress={() => handleFilterChange('available')}
           >
-            <Text style={[styles.filterText, filter === 'available' && styles.filterTextActive]}>Available ({courts.filter(c => c.status === 'AVAILABLE').length})</Text>
+            <Text style={[styles.filterText, filter === 'available' && styles.filterTextActive]}>Available ({availableCount})</Text>
           </TouchableOpacity>
         </View>
       </View>
+      
+      {/* Loading indicator for initial nearby load */}
+      {(refreshing || nearbyLoading) && (
+        <View style={styles.refreshIndicator}>
+          <ActivityIndicator size="small" color={theme.colors.primary} />
+          <Text style={styles.refreshText}>{refreshing ? 'Refreshing...' : 'Loading nearby...'}</Text>
+        </View>
+      )}
+      
       <FlatList
         data={filteredCourts}
         renderItem={renderCourt}
@@ -344,6 +406,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  refreshIndicator: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 8,
+    backgroundColor: theme.colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  refreshText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+  },
   searchContainer: {
     padding: 12,
     paddingBottom: 6,
@@ -391,7 +467,7 @@ const styles = StyleSheet.create({
   },
   list: {
     padding: 16,
-    paddingBottom: 400,
+    paddingBottom: 140,
   },
   courtCard: {
     backgroundColor: theme.colors.surface,
@@ -408,7 +484,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   courtName: {
     fontSize: 18,
@@ -438,12 +514,12 @@ const styles = StyleSheet.create({
   courtAddress: {
     fontSize: 14,
     color: theme.colors.textSecondary,
-    marginBottom: 4,
+    marginBottom: 8,
   },
   courtInfo: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 2,
+    marginTop: 4,
   },
   courtInfoText: {
     fontSize: 12,
