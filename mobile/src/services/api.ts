@@ -4,6 +4,7 @@ import { GoogleAuthProvider, signInWithCredential, User } from 'firebase/auth';
 import { auth } from './firebase';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+console.log('API: Using base URL:', API_BASE_URL);
 const USE_MOCK = process.env.EXPO_PUBLIC_USE_MOCK === 'true';
 
 // Mock data
@@ -85,10 +86,12 @@ class ApiClient {
   constructor() {
     this.client = axios.create({
       baseURL: `${API_BASE_URL}/api`,
-      timeout: 10000,
+      timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
       },
+      // Allow self-signed certs for development
+      validateStatus: () => true,
     });
 
     this.setupInterceptors();
