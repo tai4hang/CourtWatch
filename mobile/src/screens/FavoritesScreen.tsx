@@ -136,6 +136,7 @@ export default function FavoritesScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        style={{ flex: 1 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
