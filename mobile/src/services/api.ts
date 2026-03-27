@@ -152,7 +152,7 @@ class ApiClient {
     if (USE_MOCK) {
       return { user: MOCK_USER };
     }
-    const response = await this.client.get('/auth/me');
+    const response = await this.client.get('/users/me');
     return response.data;
   }
 
@@ -160,7 +160,7 @@ class ApiClient {
     if (USE_MOCK) {
       return { user: MOCK_USER };
     }
-    const response = await this.client.get('/auth/me');
+    const response = await this.client.get('/users/me');
     return response.data;
   }
 
