@@ -121,15 +121,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   fetchUser: async () => {
     try {
-      // /users/me already includes subscription data
-      const { user, subscription } = await api.getMe();
-      console.log('fetchUser success:', { user: user?.id, subscription: subscription?.status });
+      console.log('fetchUser: calling api.getMe()...');
+      const response = await api.getMe();
+      console.log('fetchUser: received response:', JSON.stringify(response).substring(0, 200));
+      
+      const user = response.user;
+      const subscription = response.subscription;
+      
+      console.log('fetchUser: parsed user:', user?.id, 'subscription:', subscription?.status);
+      
+      if (!user) {
+        throw new Error('No user data in response');
+      }
       
       set({
         user,
         subscription: subscription || null,
         isAuthenticated: true,
       });
+      console.log('fetchUser: set state complete');
     } catch (error) {
       console.error('fetchUser error:', error);
       throw error;

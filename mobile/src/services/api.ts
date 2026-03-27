@@ -160,7 +160,9 @@ class ApiClient {
     if (USE_MOCK) {
       return { user: MOCK_USER };
     }
+    console.log('API: calling GET /users/me');
     const response = await this.client.get('/users/me');
+    console.log('API: got response status:', response.status);
     return response.data;
   }
 
