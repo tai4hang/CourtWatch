@@ -4,6 +4,7 @@ import { useRoute, RouteProp, useNavigation, useFocusEffect } from '@react-navig
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker } from 'react-native-maps';
 import { api } from '../services/api';
+import { useNotificationStore } from '../store/notificationStore';
 import { theme, styles as themeStyles } from '../theme';
 
 type MainStackParamList = {
@@ -34,14 +35,23 @@ export default function CourtDetailScreen() {
   const [error, setError] = useState('');
   const [isFavorite, setIsFavorite] = useState(false);
   const [addingFavorite, setAddingFavorite] = useState(false);
-  const [notificationEnabled, setNotificationEnabled] = useState(false);
   const [reporting, setReporting] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Notification store
+  const { 
+    notifications, 
+    loadNotifications, 
+    addNotification, 
+    removeNotification, 
+    isNotificationEnabled 
+  } = useNotificationStore();
+
   useFocusEffect(
     useCallback(() => {
       loadCourt();
+      loadNotifications();
     }, [route.params.courtId])
   );
 
@@ -89,8 +99,15 @@ export default function CourtDetailScreen() {
     }
   };
 
-  const handleNotifyToggle = () => {
-    setNotificationEnabled(!notificationEnabled);
+  const notificationEnabled = court ? isNotificationEnabled(court.id) : false;
+
+  const handleNotifyToggle = async () => {
+    if (!court) return;
+    if (notificationEnabled) {
+      await removeNotification(court.id);
+    } else {
+      await addNotification(court.id, court.name);
+    }
   };
 
   const handleReportStatus = () => {

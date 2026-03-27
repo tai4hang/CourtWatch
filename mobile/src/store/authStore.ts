@@ -116,8 +116,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   fetchUser: async () => {
-    const { user } = await api.getMe();
-    const { subscription } = await api.getSubscription();
+    // /users/me already includes subscription data
+    const { user, subscription } = await api.getMe();
     
     set({
       user,

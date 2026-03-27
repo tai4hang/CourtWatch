@@ -166,8 +166,9 @@ class ApiClient {
     if (USE_MOCK) {
       return { subscription: null };
     }
-    const response = await this.client.get('/subscription');
-    return response.data;
+    // Use /users/me which already includes subscription data
+    const response = await this.client.get('/users/me');
+    return { subscription: response.data.subscription };
   }
 
   // Courts methods
