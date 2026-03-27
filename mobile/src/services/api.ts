@@ -168,9 +168,16 @@ class ApiClient {
       return { user: MOCK_USER };
     }
     console.log('API: calling GET /users/me');
-    const response = await this.client.get('/users/me');
-    console.log('API: got response status:', response.status);
-    return response.data;
+    console.log('API: full URL:', this.client.defaults.baseURL + '/users/me');
+    try {
+      const response = await this.client.get('/users/me');
+      console.log('API: got response status:', response.status);
+      return response.data;
+    } catch (err: any) {
+      console.log('API getMe error:', err.message, err.code);
+      console.log('API getMe config:', err.config?.url, err.config?.baseURL);
+      throw err;
+    }
   }
 
   async getSubscription() {
