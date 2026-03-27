@@ -197,7 +197,12 @@ export default function LoginScreen({ navigation }: any) {
         disabled={googleLoading || !request}
       >
         <View style={styles.googleGContainer}>
-          <Text style={styles.googleGIcon}>G</Text>
+          <Text style={styles.gBlue}>G</Text>
+          <Text style={styles.gRed}>o</Text>
+          <Text style={styles.gYellow}>o</Text>
+          <Text style={styles.gGreen}>g</Text>
+          <Text style={styles.gBlue}>l</Text>
+          <Text style={styles.gRed}>e</Text>
         </View>
         <Text style={styles.googleButtonText}>
           {googleLoading ? 'Logging in...' : 'Log in with Google'}
@@ -276,22 +281,28 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   googleGContainer: {
-    marginRight: 12,
+    marginRight: 10,
+    flexDirection: 'row',
   },
-  googleGIcon: {
-    fontSize: 24,
+  gBlue: {
+    fontSize: 22,
     fontWeight: 'bold',
-    backgroundColor: '#4285F4',
-    color: '#fff',
-    width: 36,
-    height: 36,
-    textAlign: 'center',
-    lineHeight: 36,
-    borderRadius: 18,
-    overflow: 'hidden',
-    textShadowColor: '#EA4335',
-    textShadowOffset: { width: -1, height: 0 },
-    textShadowRadius: 8,
+    color: '#4285F4',
+  },
+  gRed: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#EA4335',
+  },
+  gYellow: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#FBBC05',
+  },
+  gGreen: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#34A853',
   },
   googleButtonText: {
     color: theme.colors.text,
