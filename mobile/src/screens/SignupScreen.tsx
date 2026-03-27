@@ -255,8 +255,9 @@ const styles = StyleSheet.create({
   eyeIcon: {
     position: 'absolute',
     right: 15,
-    top: '50%',
-    marginTop: -12,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
   },
   linkHighlight: {
     fontWeight: '600',
