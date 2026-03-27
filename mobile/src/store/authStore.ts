@@ -72,13 +72,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       user: response.user,
       isAuthenticated: true,
     });
-    
-    // Fetch full user data after login (catch to not break login if it fails)
-    try {
-      await get().fetchUser();
-    } catch (e) {
-      console.log('fetchUser failed, using login response user');
-    }
   },
 
   register: async (email: string, password: string, name?: string) => {

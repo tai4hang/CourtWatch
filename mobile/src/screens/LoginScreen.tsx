@@ -38,6 +38,7 @@ export default function LoginScreen({ navigation }: any) {
     setLoading(true);
     try {
       await login(email, password);
+      navigation.replace('Courts');
     } catch (err: any) {
       console.error('Login failed:', err);
       // Show user-friendly error message

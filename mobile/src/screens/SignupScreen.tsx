@@ -50,6 +50,7 @@ export default function SignupScreen({ navigation }: any) {
     setLoading(true);
     try {
       await register(email, password, name);
+      navigation.replace('Courts');
     } catch (err: any) {
       console.error('Signup failed:', err);
       const message = err?.response?.data?.message || 'Registration failed. Please try again.';
