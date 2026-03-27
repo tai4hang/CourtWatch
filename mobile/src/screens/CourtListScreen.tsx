@@ -100,7 +100,8 @@ export default function CourtListScreen() {
   const loadNearbyCourts = async () => {
     if (!location) return;
     try {
-      const data = await api.getNearbyCourts(location.latitude, location.longitude, 10, 500);
+      // Only get top 20 nearby courts
+      const data = await api.getNearbyCourts(location.latitude, location.longitude, 10, 20);
       const nearbyCourts = data.courts || [];
       setCourts(nearbyCourts);
     } catch (error) {
@@ -229,19 +230,19 @@ export default function CourtListScreen() {
             style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]} 
             onPress={() => handleFilterChange('all')}
           >
-            <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>All</Text>
+            <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>All ({allCourts.length})</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.filterButton, filter === 'nearby' && styles.filterButtonActive]} 
             onPress={() => handleFilterChange('nearby')}
           >
-            <Text style={[styles.filterText, filter === 'nearby' && styles.filterTextActive]}>Nearby</Text>
+            <Text style={[styles.filterText, filter === 'nearby' && styles.filterTextActive]}>Nearby ({filteredCourts.length})</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.filterButton, filter === 'available' && styles.filterButtonActive]} 
             onPress={() => handleFilterChange('available')}
           >
-            <Text style={[styles.filterText, filter === 'available' && styles.filterTextActive]}>Available</Text>
+            <Text style={[styles.filterText, filter === 'available' && styles.filterTextActive]}>Available ({filteredCourts.length})</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -392,13 +393,13 @@ const styles = StyleSheet.create({
   },
   list: {
     padding: 16,
-    paddingBottom: 120,
+    paddingBottom: 80,
   },
   courtCard: {
     backgroundColor: theme.colors.surface,
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
