@@ -258,11 +258,13 @@ export const courtModel = {
     const latDelta = radiusKm / 111.0;
     const lngDelta = radiusKm / (111.0 * Math.cos(lat * Math.PI / 180));
     
-    // Use Number() to ensure we pass valid numbers to Firestore
+    // Use Number() and fallback to 0 to ensure valid values passed to Firestore
     const minLat = Number(lat) - Number(latDelta);
     const maxLat = Number(lat) + Number(latDelta);
     const minLng = Number(lng) - Number(lngDelta);
     const maxLng = Number(lng) + Number(lngDelta);
+    
+    console.log('Firestore query bounds:', { minLat, maxLat, minLng, maxLng, isNaN: { minLat: isNaN(minLat), maxLat: isNaN(maxLat), minLng: isNaN(minLng), maxLng: isNaN(maxLng) } });
     
     const snapshot = await db().collection(COLLECTIONS.COURTS)
       .where('latitude', '>=', minLat)
@@ -271,6 +273,8 @@ export const courtModel = {
       .where('longitude', '<=', maxLng)
       .limit(limit)
       .get();
+    
+    console.log('Firestore query returned', snapshot.size, 'documents');
     
     return snapshot.docs
       .map(doc => {
