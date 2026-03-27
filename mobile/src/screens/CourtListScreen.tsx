@@ -142,6 +142,11 @@ export default function CourtListScreen() {
     return 0;
   });
 
+  // Calculate counts for filter buttons - use allCourts for All/Available, courts for Nearby
+  const allCount = allCourts.length;
+  const availableCount = allCourts.filter(c => c.status === 'AVAILABLE').length;
+  const nearbyCount = courts.length;
+
   const getStatusColor = (status?: string) => {
     // Map backend status to UI colors
     switch (status) {
@@ -230,19 +235,19 @@ export default function CourtListScreen() {
             style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]} 
             onPress={() => handleFilterChange('all')}
           >
-            <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>All ({allCourts.length})</Text>
+            <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>All ({allCount})</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.filterButton, filter === 'nearby' && styles.filterButtonActive]} 
             onPress={() => handleFilterChange('nearby')}
           >
-            <Text style={[styles.filterText, filter === 'nearby' && styles.filterTextActive]}>Nearby ({filteredCourts.length})</Text>
+            <Text style={[styles.filterText, filter === 'nearby' && styles.filterTextActive]}>Nearby ({nearbyCount || '-'})</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.filterButton, filter === 'available' && styles.filterButtonActive]} 
             onPress={() => handleFilterChange('available')}
           >
-            <Text style={[styles.filterText, filter === 'available' && styles.filterTextActive]}>Available ({filteredCourts.length})</Text>
+            <Text style={[styles.filterText, filter === 'available' && styles.filterTextActive]}>Available ({availableCount})</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -393,12 +398,12 @@ const styles = StyleSheet.create({
   },
   list: {
     padding: 16,
-    paddingBottom: 80,
+    paddingBottom: 100,
   },
   courtCard: {
     backgroundColor: theme.colors.surface,
     borderRadius: 12,
-    padding: 16,
+    padding: 12,
     marginBottom: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
