@@ -49,10 +49,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         try {
           await get().fetchUser();
         } catch (err: any) {
-          // Token invalid/expired - clear and re-throw to set isAuthenticated false
-          console.warn('Token invalid, clearing auth state');
+          // Token invalid/expired - clear and set unauthenticated
+          console.warn('Token invalid, clearing auth state:', err.message);
           await SecureStore.deleteItemAsync('accessToken');
           await SecureStore.deleteItemAsync('refreshToken');
+          set({ isAuthenticated: false });
         }
       }
     } catch (error) {
@@ -119,13 +120,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   fetchUser: async () => {
-    // /users/me already includes subscription data
-    const { user, subscription } = await api.getMe();
-    
-    set({
-      user,
-      subscription: subscription || null,
-      isAuthenticated: true,
-    });
+    try {
+      // /users/me already includes subscription data
+      const { user, subscription } = await api.getMe();
+      console.log('fetchUser success:', { user: user?.id, subscription: subscription?.status });
+      
+      set({
+        user,
+        subscription: subscription || null,
+        isAuthenticated: true,
+      });
+    } catch (error) {
+      console.error('fetchUser error:', error);
+      throw error;
+    }
   },
 }));
