@@ -46,8 +46,8 @@ export default function CourtListScreen() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
   const [showCityModal, setShowCityModal] = useState(false);
-  const [cities] = useState<string[]>(['Markham', 'Toronto', 'North York', 'Scarborough', 'Etobicoke', 'Richmond Hill', 'Mississauga', 'Brampton']);
-  const [selectedCities, setSelectedCities] = useState<string[]>(['Markham', 'Toronto', 'North York', 'Scarborough', 'Etobicoke', 'Richmond Hill', 'Mississauga', 'Brampton']);
+  const [cities] = useState<string[]>(['Markham', 'Toronto', 'Richmond Hill']);
+  const [selectedCities, setSelectedCities] = useState<string[]>(['Markham', 'Toronto', 'Richmond Hill']);
   const [location, setLocation] = useState<{latitude: number; longitude: number} | null>(null);
   const [nearbyLoading, setNearbyLoading] = useState(false);
   const [nearbyCourtsCache, setNearbyCourtsCache] = useState<Court[] | null>(null);
