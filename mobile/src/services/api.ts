@@ -99,10 +99,14 @@ class ApiClient {
       async (config) => {
         try {
           const token = await SecureStore.getItemAsync('accessToken') || this.mockToken;
+          console.log('API interceptor: token exists:', !!token);
           if (token && config.headers) {
             config.headers.set('Authorization', `Bearer ${token}`, false);
           }
-        } catch (e) {}
+          console.log('API request:', config.method?.toUpperCase(), config.url);
+        } catch (e) {
+          console.log('API interceptor error:', e);
+        }
         return config;
       },
       (error) => Promise.reject(error)
@@ -110,7 +114,10 @@ class ApiClient {
 
     this.client.interceptors.response.use(
       (response) => response,
-      (error) => Promise.reject(error)
+      (error) => {
+        console.log('API response error:', error.message, error.code);
+        return Promise.reject(error);
+      }
     );
   }
 
