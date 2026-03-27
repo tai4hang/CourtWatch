@@ -147,7 +147,7 @@ export default function LoginScreen({ navigation }: any) {
       </View>
       <View style={styles.titleRow}>
         <Ionicons name="tennisball" size={22} color={theme.colors.primary} style={styles.titleIcon} />
-        <Text style={styles.loginTitle}>Login</Text>
+        <Text style={styles.loginTitle}>Log in</Text>
       </View>
       
       {error ? <Text style={themeStyles.errorText}>{error}</Text> : null}
@@ -182,7 +182,7 @@ export default function LoginScreen({ navigation }: any) {
         onPress={handleLogin}
         disabled={loading}
       >
-        <Text style={themeStyles.buttonText}>{loading ? 'Logging in...' : 'Login'}</Text>
+        <Text style={themeStyles.buttonText}>{loading ? 'Logging in...' : 'Log in'}</Text>
       </TouchableOpacity>
 
       <View style={styles.dividerContainer}>
@@ -198,14 +198,15 @@ export default function LoginScreen({ navigation }: any) {
       >
         <View style={styles.googleGContainer}>
           <View style={styles.googleG}>
-            <View style={[styles.gBlue, { backgroundColor: '#4285F4' }]} />
-            <View style={[styles.gRed, { backgroundColor: '#EA4335' }]} />
-            <View style={[styles.gYellow, { backgroundColor: '#FBBC05' }]} />
-            <View style={[styles.gGreen, { backgroundColor: '#34A853' }]} />
+            <View style={styles.gColor1} />
+            <View style={styles.gColor2} />
+            <View style={styles.gColor3} />
+            <View style={styles.gColor4} />
+            <Text style={styles.gLetter}>G</Text>
           </View>
         </View>
         <Text style={styles.googleButtonText}>
-          {googleLoading ? 'Signing in...' : 'Sign in with Google'}
+          {googleLoading ? 'Logging in...' : 'Log in with Google'}
         </Text>
       </TouchableOpacity>
       
@@ -284,41 +285,52 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   googleG: {
-    width: 20,
-    height: 20,
+    width: 24,
+    height: 24,
     position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  gBlue: {
+  gColor1: {
     position: 'absolute',
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#4285F4',
     top: 0,
     left: 0,
   },
-  gRed: {
+  gColor2: {
     position: 'absolute',
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#EA4335',
     top: 0,
     right: 0,
   },
-  gYellow: {
+  gColor3: {
     position: 'absolute',
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#FBBC05',
     bottom: 0,
-    left: 4,
+    left: 2,
   },
-  gGreen: {
+  gColor4: {
     position: 'absolute',
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#34A853',
     bottom: 0,
-    right: 0,
+    right: 2,
+  },
+  gLetter: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#fff',
   },
   googleButtonText: {
     color: theme.colors.text,
