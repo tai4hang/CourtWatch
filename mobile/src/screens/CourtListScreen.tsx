@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
   },
   list: {
     padding: 16,
-    paddingBottom: 100,
+    paddingBottom: 140,
   },
   courtCard: {
     backgroundColor: theme.colors.surface,
