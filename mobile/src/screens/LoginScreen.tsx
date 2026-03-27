@@ -145,13 +145,16 @@ export default function LoginScreen({ navigation }: any) {
       <View style={styles.logoContainer}>
         <Image source={require('../../assets/app-logo.png')} style={styles.logo} resizeMode="contain" />
       </View>
-      <Text style={themeStyles.title}>Welcome Back</Text>
+      <View style={styles.titleRow}>
+        <Ionicons name="tennisball" size={28} color={theme.colors.primary} />
+        <Text style={themeStyles.title}>Login</Text>
+      </View>
       
       {error ? <Text style={themeStyles.errorText}>{error}</Text> : null}
       
       <TextInput
         style={themeStyles.input}
-        placeholder="Email"
+        placeholder="Enter your email"
         placeholderTextColor="#999"
         value={email}
         onChangeText={(text) => {
@@ -164,7 +167,7 @@ export default function LoginScreen({ navigation }: any) {
       />
       <TextInput
         style={themeStyles.input}
-        placeholder="Password"
+        placeholder="Enter password"
         placeholderTextColor="#999"
         value={password}
         onChangeText={(text) => {
@@ -184,7 +187,7 @@ export default function LoginScreen({ navigation }: any) {
 
       <View style={styles.dividerContainer}>
         <View style={styles.dividerLine} />
-        <Text style={styles.dividerText}>or</Text>
+        <Text style={styles.dividerText}>Or</Text>
         <View style={styles.dividerLine} />
       </View>
 
@@ -193,7 +196,12 @@ export default function LoginScreen({ navigation }: any) {
         onPress={handleGoogleSignIn}
         disabled={googleLoading || !request}
       >
-        <Ionicons name="logo-google" size={24} color="#4285F4" style={styles.googleIcon} />
+        <View style={styles.rainbowGoogleIcon}>
+          <View style={[styles.googleDot, { backgroundColor: '#EA4335' }]} />
+          <View style={[styles.googleDot, { backgroundColor: '#FBBC05' }]} />
+          <View style={[styles.googleDot, { backgroundColor: '#34A853' }]} />
+          <View style={[styles.googleDot, { backgroundColor: '#4285F4' }]} />
+        </View>
         <Text style={styles.googleButtonText}>
           {googleLoading ? 'Signing in...' : 'Sign in with Google'}
         </Text>
@@ -218,6 +226,11 @@ const styles = StyleSheet.create({
     height: 240,
     marginBottom: 10,
     resizeMode: 'contain',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   linkHighlight: {
     fontWeight: '600',
@@ -255,6 +268,16 @@ const styles = StyleSheet.create({
   },
   googleIcon: {
     marginRight: 10,
+  },
+  rainbowGoogleIcon: {
+    flexDirection: 'row',
+    marginRight: 10,
+  },
+  googleDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginHorizontal: 1,
   },
   googleButtonText: {
     color: theme.colors.text,
