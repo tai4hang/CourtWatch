@@ -297,8 +297,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   searchContainer: {
-    padding: 16,
-    paddingBottom: 8,
+    padding: 12,
+    paddingBottom: 6,
     backgroundColor: theme.colors.surface,
   },
   searchInputContainer: {
@@ -318,8 +318,8 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     flexDirection: 'row',
-    paddingTop: 12,
-    gap: 8,
+    paddingTop: 8,
+    gap: 6,
   },
   filterButton: {
     paddingHorizontal: 16,
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
   },
   list: {
     padding: 16,
-    paddingBottom: 100,
+    paddingBottom: 120,
   },
   courtCard: {
     backgroundColor: theme.colors.surface,
