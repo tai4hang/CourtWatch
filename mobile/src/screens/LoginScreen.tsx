@@ -146,8 +146,8 @@ export default function LoginScreen({ navigation }: any) {
         <Image source={require('../../assets/app-logo.png')} style={styles.logo} resizeMode="contain" />
       </View>
       <View style={styles.titleRow}>
-        <Ionicons name="tennisball" size={28} color={theme.colors.primary} />
-        <Text style={themeStyles.title}>Login</Text>
+        <Ionicons name="tennisball" size={22} color={theme.colors.primary} style={styles.titleIcon} />
+        <Text style={styles.loginTitle}>Login</Text>
       </View>
       
       {error ? <Text style={themeStyles.errorText}>{error}</Text> : null}
@@ -196,11 +196,13 @@ export default function LoginScreen({ navigation }: any) {
         onPress={handleGoogleSignIn}
         disabled={googleLoading || !request}
       >
-        <View style={styles.rainbowGoogleIcon}>
-          <View style={[styles.googleDot, { backgroundColor: '#EA4335' }]} />
-          <View style={[styles.googleDot, { backgroundColor: '#FBBC05' }]} />
-          <View style={[styles.googleDot, { backgroundColor: '#34A853' }]} />
-          <View style={[styles.googleDot, { backgroundColor: '#4285F4' }]} />
+        <View style={styles.googleGContainer}>
+          <View style={styles.googleG}>
+            <View style={[styles.gBlue, { backgroundColor: '#4285F4' }]} />
+            <View style={[styles.gRed, { backgroundColor: '#EA4335' }]} />
+            <View style={[styles.gYellow, { backgroundColor: '#FBBC05' }]} />
+            <View style={[styles.gGreen, { backgroundColor: '#34A853' }]} />
+          </View>
         </View>
         <Text style={styles.googleButtonText}>
           {googleLoading ? 'Signing in...' : 'Sign in with Google'}
@@ -230,7 +232,16 @@ const styles = StyleSheet.create({
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    justifyContent: 'center',
+    marginBottom: 15,
+  },
+  titleIcon: {
+    marginRight: 6,
+  },
+  loginTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: theme.colors.text,
   },
   linkHighlight: {
     fontWeight: '600',
@@ -269,15 +280,45 @@ const styles = StyleSheet.create({
   googleIcon: {
     marginRight: 10,
   },
-  rainbowGoogleIcon: {
-    flexDirection: 'row',
+  googleGContainer: {
     marginRight: 10,
   },
-  googleDot: {
+  googleG: {
+    width: 20,
+    height: 20,
+    position: 'relative',
+  },
+  gBlue: {
+    position: 'absolute',
     width: 8,
     height: 8,
     borderRadius: 4,
-    marginHorizontal: 1,
+    top: 0,
+    left: 0,
+  },
+  gRed: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    top: 0,
+    right: 0,
+  },
+  gYellow: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    bottom: 0,
+    left: 4,
+  },
+  gGreen: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    bottom: 0,
+    right: 0,
   },
   googleButtonText: {
     color: theme.colors.text,
