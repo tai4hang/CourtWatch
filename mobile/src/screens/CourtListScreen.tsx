@@ -27,6 +27,7 @@ type FilterType = 'all' | 'nearby' | 'available';
 
 export default function CourtListScreen() {
   const navigation = useNavigation<any>();
+  const [allCourts, setAllCourts] = useState<Court[]>([]);
   const [courts, setCourts] = useState<Court[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -40,7 +41,7 @@ export default function CourtListScreen() {
   useFocusEffect(
     useCallback(() => {
       // Only load on first mount or refresh
-      if (courts.length === 0) {
+      if (allCourts.length === 0) {
         loadCourts();
       }
       requestLocation();
@@ -71,9 +72,13 @@ export default function CourtListScreen() {
 
   // Handle filter change - switch view without API call if already loaded
   const handleFilterChange = (newFilter: FilterType) => {
+    // If switching from nearby to another filter, restore all courts
+    if (filter === 'nearby' && newFilter !== 'nearby') {
+      setCourts(allCourts);
+    }
     setFilter(newFilter);
-    // If switching to nearby and we don't have nearby data, load it
-    if (newFilter === 'nearby' && location && courts.length > 0) {
+    // If switching to nearby, load nearby courts
+    if (newFilter === 'nearby' && location) {
       loadNearbyCourts();
     }
   };
@@ -82,7 +87,9 @@ export default function CourtListScreen() {
     try {
       // Load all courts once (no filter params) and filter locally
       const data = await api.getCourts(1, 500);
-      setCourts(data.courts || []);
+      const loadedCourts = data.courts || [];
+      setAllCourts(loadedCourts);
+      setCourts(loadedCourts);
     } catch (error) {
       console.error('Failed to load courts:', error);
     } finally {
@@ -94,7 +101,8 @@ export default function CourtListScreen() {
     if (!location) return;
     try {
       const data = await api.getNearbyCourts(location.latitude, location.longitude, 10, 500);
-      setCourts(data.courts || []);
+      const nearbyCourts = data.courts || [];
+      setCourts(nearbyCourts);
     } catch (error) {
       console.error('Failed to load nearby courts:', error);
     }
