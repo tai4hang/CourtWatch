@@ -75,8 +75,8 @@ export function initFirestore(): Firestore {
   // Use getFirestore() instead of app.firestore() - use default database
   try {
     db = getFirestore(app);
-    // Enable timestamps in snapshots
-    db.settings({ timestampsInSnapshots: true });
+    // Enable timestamps in snapshots and ignore undefined properties
+    db.settings({ timestampsInSnapshots: true, ignoreUndefinedProperties: true });
     console.log('Firestore initialized successfully with default database');
   } catch (err) {
     console.error('Error getting Firestore instance:', err);

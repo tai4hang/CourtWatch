@@ -39,9 +39,19 @@ export default function CourtListScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadCourts();
-      requestLocation();
+      requestLocation().then(() => {
+        loadCourts();
+      });
     }, [filter])
+  );
+
+  // Reload when location changes
+  useFocusEffect(
+    useCallback(() => {
+      if (location && filter === 'nearby') {
+        loadCourts();
+      }
+    }, [location, filter])
   );
 
   const requestLocation = async () => {
@@ -343,6 +353,7 @@ const styles = StyleSheet.create({
   },
   list: {
     padding: 16,
+    paddingBottom: 100, // Account for bottom tab bar
   },
   courtCard: {
     backgroundColor: theme.colors.surface,
