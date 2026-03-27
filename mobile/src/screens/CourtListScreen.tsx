@@ -142,10 +142,11 @@ export default function CourtListScreen() {
     return 0;
   });
 
-  // Calculate counts for filter buttons - use allCourts for All/Available, courts for Nearby
+  // Calculate counts for filter buttons
   const allCount = allCourts.length;
   const availableCount = allCourts.filter(c => c.status === 'AVAILABLE').length;
-  const nearbyCount = courts.length;
+  // Nearby shows same count as All when not on Nearby filter (same data)
+  const nearbyCount = filter === 'nearby' ? courts.length : allCount;
 
   const getStatusColor = (status?: string) => {
     // Map backend status to UI colors
