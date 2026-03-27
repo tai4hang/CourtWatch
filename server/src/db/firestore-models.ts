@@ -170,26 +170,30 @@ export const sessionModel = {
   async findByAccessToken(accessToken: string): Promise<User | null> {
     const snapshot = await db().collection('sessions')
       .where('access_token', '==', accessToken)
-      .where('expires_at', '>', new Date())
       .limit(1)
       .get();
     
     if (snapshot.empty) return null;
     
     const session = snapshot.docs[0].data() as Session;
+    // Check expiration in code (Firestore doesn't support > on non-equality fields without index)
+    if (new Date(session.expires_at) <= new Date()) return null;
+    
     return userModel.findById(session.user_id);
   },
 
   async findByRefreshToken(refreshToken: string): Promise<User | null> {
     const snapshot = await db().collection('sessions')
       .where('refresh_token', '==', refreshToken)
-      .where('expires_at', '>', new Date())
       .limit(1)
       .get();
     
     if (snapshot.empty) return null;
     
     const session = snapshot.docs[0].data() as Session;
+    // Check expiration in code
+    if (new Date(session.expires_at) <= new Date()) return null;
+    
     return userModel.findById(session.user_id);
   },
 
