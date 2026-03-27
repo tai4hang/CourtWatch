@@ -180,13 +180,13 @@ const styles = StyleSheet.create({
   },
   list: {
     padding: 16,
-    paddingBottom: 100,
+    paddingBottom: 400,
   },
   courtCard: {
     backgroundColor: theme.colors.surface,
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    padding: 12,
+    marginBottom: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   courtName: {
     fontSize: 18,
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   courtAddress: {
     fontSize: 14,
     color: theme.colors.textSecondary,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   courtInfo: {
     flexDirection: 'row',

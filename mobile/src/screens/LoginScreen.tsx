@@ -80,9 +80,29 @@ export default function LoginScreen({ navigation }: any) {
       navigation.replace('Tab');
     } catch (err: any) {
       console.error('Login failed:', err);
-      const message = err.message || 'Login failed. Please check your credentials.';
-      setError(message);
-      Alert.alert('Login Failed', message);
+      
+      // Handle Firebase auth errors
+      if (err.code === 'auth/invalid-credential') {
+        const message = 'Invalid email or password. Please try again.';
+        setError(message);
+        Alert.alert('Login Failed', message);
+      } else if (err.code === 'auth/invalid-email') {
+        const message = 'Invalid email address. Please check and try again.';
+        setError(message);
+        Alert.alert('Login Failed', message);
+      } else if (err.code === 'auth/user-not-found') {
+        const message = 'No account found with this email. Please sign up first.';
+        setError(message);
+        Alert.alert('Login Failed', message);
+      } else if (err.code === 'auth/user-disabled') {
+        const message = 'This account has been disabled. Please contact support.';
+        setError(message);
+        Alert.alert('Login Failed', message);
+      } else {
+        const message = err.message || 'Login failed. Please check your credentials.';
+        setError(message);
+        Alert.alert('Login Failed', message);
+      }
     } finally {
       setLoading(false);
     }

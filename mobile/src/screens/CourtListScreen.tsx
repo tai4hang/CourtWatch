@@ -41,7 +41,7 @@ export default function CourtListScreen() {
   useFocusEffect(
     useCallback(() => {
       // Only load on first mount or refresh
-      if (allCourts.length === 0) {
+      if (courts.length === 0) {
         loadCourts();
       }
       requestLocation();
@@ -77,8 +77,8 @@ export default function CourtListScreen() {
       setCourts(allCourts);
     }
     setFilter(newFilter);
-    // If switching to nearby, load nearby courts
-    if (newFilter === 'nearby' && location) {
+    // If switching to nearby and we don't have nearby data, load it
+    if (newFilter === 'nearby' && location && allCourts.length > 0) {
       loadNearbyCourts();
     }
   };
@@ -100,10 +100,8 @@ export default function CourtListScreen() {
   const loadNearbyCourts = async () => {
     if (!location) return;
     try {
-      // Only get top 20 nearby courts
-      const data = await api.getNearbyCourts(location.latitude, location.longitude, 10, 20);
-      const nearbyCourts = data.courts || [];
-      setCourts(nearbyCourts);
+      const data = await api.getNearbyCourts(location.latitude, location.longitude, 10, 500);
+      setCourts(data.courts || []);
     } catch (error) {
       console.error('Failed to load nearby courts:', error);
     }
@@ -141,12 +139,6 @@ export default function CourtListScreen() {
     }
     return 0;
   });
-
-  // Calculate counts for filter buttons
-  const allCount = allCourts.length;
-  const availableCount = allCourts.filter(c => c.status === 'AVAILABLE').length;
-  // Nearby shows same count as All when not on Nearby filter (same data)
-  const nearbyCount = filter === 'nearby' ? courts.length : allCount;
 
   const getStatusColor = (status?: string) => {
     // Map backend status to UI colors
@@ -236,19 +228,19 @@ export default function CourtListScreen() {
             style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]} 
             onPress={() => handleFilterChange('all')}
           >
-            <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>All ({allCount})</Text>
+            <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>All ({allCourts.length})</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.filterButton, filter === 'nearby' && styles.filterButtonActive]} 
             onPress={() => handleFilterChange('nearby')}
           >
-            <Text style={[styles.filterText, filter === 'nearby' && styles.filterTextActive]}>Nearby ({nearbyCount || '-'})</Text>
+            <Text style={[styles.filterText, filter === 'nearby' && styles.filterTextActive]}>Nearby</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.filterButton, filter === 'available' && styles.filterButtonActive]} 
             onPress={() => handleFilterChange('available')}
           >
-            <Text style={[styles.filterText, filter === 'available' && styles.filterTextActive]}>Available ({availableCount})</Text>
+            <Text style={[styles.filterText, filter === 'available' && styles.filterTextActive]}>Available ({courts.filter(c => c.status === 'AVAILABLE').length})</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -399,7 +391,7 @@ const styles = StyleSheet.create({
   },
   list: {
     padding: 16,
-    paddingBottom: 140,
+    paddingBottom: 400,
   },
   courtCard: {
     backgroundColor: theme.colors.surface,
@@ -416,7 +408,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   courtName: {
     fontSize: 18,
@@ -446,12 +438,12 @@ const styles = StyleSheet.create({
   courtAddress: {
     fontSize: 14,
     color: theme.colors.textSecondary,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   courtInfo: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 4,
+    marginTop: 2,
   },
   courtInfoText: {
     fontSize: 12,

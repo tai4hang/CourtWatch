@@ -36,6 +36,7 @@ export default function CourtDetailScreen() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [addingFavorite, setAddingFavorite] = useState(false);
   const [notificationEnabled, setNotificationEnabled] = useState(false);
+  const [subscriptionCount, setSubscriptionCount] = useState(0);
   const [reporting, setReporting] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -59,6 +60,11 @@ export default function CourtDetailScreen() {
       // Check if already a favorite
       const favData = await api.checkFavorite(route.params.courtId);
       setIsFavorite(favData.isFavorite);
+      // Get notification subscriptions count
+      const subData = await api.getCourtSubscriptions();
+      const subs = subData.subscriptions || [];
+      setSubscriptionCount(subs.length);
+      setNotificationEnabled(subs.some((s: any) => s.courtId === route.params.courtId));
     } catch (err) {
       console.error('Failed to load court:', err);
       setError('Failed to load court details');
@@ -68,13 +74,18 @@ export default function CourtDetailScreen() {
   };
 
   const handleAddFavorite = async () => {
-    if (isFavorite || addingFavorite) return;
+    if (addingFavorite) return;
     setAddingFavorite(true);
     try {
-      await api.addFavorite(route.params.courtId);
-      setIsFavorite(true);
+      if (isFavorite) {
+        await api.removeFavorite(route.params.courtId);
+        setIsFavorite(false);
+      } else {
+        await api.addFavorite(route.params.courtId);
+        setIsFavorite(true);
+      }
     } catch (err) {
-      console.error('Failed to add favorite:', err);
+      console.error('Failed to update favorite:', err);
     } finally {
       setAddingFavorite(false);
     }
@@ -101,11 +112,17 @@ export default function CourtDetailScreen() {
 
   const handleNotifyToggle = async () => {
     if (!notificationEnabled) {
+      // Check if already at max subscriptions
+      if (subscriptionCount >= 3) {
+        Alert.alert('Limit Reached', 'You can only subscribe to up to 3 courts for notifications.');
+        return;
+      }
       // Enable notifications - first register for push, then subscribe
       try {
         await registerForPushNotifications();
         await subscribeToCourtNotifications(route.params.courtId);
         setNotificationEnabled(true);
+        setSubscriptionCount(prev => prev + 1);
       } catch (err) {
         console.error('Failed to enable notifications:', err);
         Alert.alert('Error', 'Failed to enable notifications');
@@ -115,6 +132,7 @@ export default function CourtDetailScreen() {
       try {
         await unsubscribeFromCourtNotifications(route.params.courtId);
         setNotificationEnabled(false);
+        setSubscriptionCount(prev => prev - 1);
       } catch (err) {
         console.error('Failed to disable notifications:', err);
       }
@@ -189,7 +207,6 @@ export default function CourtDetailScreen() {
             <Ionicons name="flashlight" size={18} color="#FFC107" style={styles.lightIcon} />
           )}
         </View>
-        {court.city && <Text style={styles.cityText}>{court.city}</Text>}
         <View style={styles.statusRow}>
           <View style={[styles.statusDot, { backgroundColor: getStatusColor(court.status) }]} />
         </View>
@@ -197,14 +214,24 @@ export default function CourtDetailScreen() {
 
       <View style={styles.section}>
         <Text style={styles.label}>Address</Text>
-        <TouchableOpacity onPress={() => {
-          const url = Platform.OS === 'ios' 
-            ? `http://maps.apple.com/?ll=${court.latitude},${court.longitude}&q=${encodeURIComponent(court.address)}`
-            : `https://www.google.com/maps/search/?api=1&query=${court.latitude},${court.longitude}`;
-          Linking.openURL(url);
-        }}>
-          <Text style={styles.value}>{court.address}</Text>
-        </TouchableOpacity>
+        <View style={styles.addressRow}>
+          <TouchableOpacity style={styles.addressTextContainer} onPress={() => {
+            const url = Platform.OS === 'ios' 
+              ? `http://maps.apple.com/?ll=${court.latitude},${court.longitude}&q=${encodeURIComponent(court.address)}`
+              : `https://www.google.com/maps/search/?api=1&query=${court.latitude},${court.longitude}`;
+            Linking.openURL(url);
+          }}>
+            <Text style={styles.value}>{court.address}{court.city ? `, ${court.city}` : ''}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.mapButton} onPress={() => {
+            const url = Platform.OS === 'ios' 
+              ? `http://maps.apple.com/?ll=${court.latitude},${court.longitude}&q=${encodeURIComponent(court.address)}`
+              : `https://www.google.com/maps/search/?api=1&query=${court.latitude},${court.longitude}`;
+            Linking.openURL(url);
+          }}>
+            <Ionicons name="navigate" size={22} color={theme.colors.primary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.mapContainer}>
@@ -274,18 +301,18 @@ export default function CourtDetailScreen() {
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[themeStyles.button, isFavorite && styles.favoriteButtonDisabled]}
+        style={[themeStyles.button, isFavorite && styles.removeFavoriteButton]}
         onPress={handleAddFavorite}
-        disabled={isFavorite || addingFavorite}
+        disabled={addingFavorite}
       >
         <Ionicons 
           name={isFavorite ? "heart" : "heart-outline"} 
           size={20} 
-          color={isFavorite ? "#E0E0E0" : "#fff"} 
+          color={isFavorite ? "#fff" : "#fff"} 
           style={styles.heartIcon}
         />
-        <Text style={[themeStyles.buttonText, isFavorite && styles.favoriteTextDisabled]}>
-          {addingFavorite ? 'Adding...' : isFavorite ? 'Added to Favorites' : 'Add to Favorites'}
+        <Text style={themeStyles.buttonText}>
+          {addingFavorite ? 'Processing...' : isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
         </Text>
       </TouchableOpacity>
 
@@ -399,6 +426,9 @@ const styles = StyleSheet.create({
   favoriteTextDisabled: {
     color: '#E0E0E0',
   },
+  removeFavoriteButton: {
+    backgroundColor: theme.colors.error,
+  },
   heartIcon: {
     marginRight: 8,
   },
@@ -422,7 +452,7 @@ const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: theme.colors.surface,
     borderRadius: 16,
-    padding: 20,
+    padding: 16,
     width: '80%',
     maxWidth: 300,
   },
@@ -455,12 +485,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   section: {
-    marginBottom: 16,
+    marginBottom: 4,
+  },
+  addressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  addressTextContainer: {
+    flex: 1,
+    marginRight: 8,
+  },
+  mapButton: {
+    padding: 6,
   },
   label: {
     fontSize: 14,
     color: theme.colors.textSecondary,
-    marginBottom: 4,
+    marginBottom: 1,
   },
   value: {
     fontSize: 16,
@@ -478,7 +520,7 @@ const styles = StyleSheet.create({
   infoCard: {
     flex: 1,
     backgroundColor: theme.colors.surface,
-    padding: 16,
+    padding: 12,
     borderRadius: 12,
     marginHorizontal: 4,
   },
@@ -494,6 +536,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
+    paddingBottom: 60,
   },
   centered: {
     justifyContent: 'center',

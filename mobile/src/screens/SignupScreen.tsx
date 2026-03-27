@@ -99,9 +99,29 @@ export default function SignupScreen({ navigation }: any) {
       navigation.replace('Tab');
     } catch (err: any) {
       console.error('Signup failed:', err);
-      const message = err.message || 'Registration failed. Please try again.';
-      setError(message);
-      Alert.alert('Registration Failed', message);
+      
+      // Handle Firebase auth errors
+      if (err.code === 'auth/email-already-in-use') {
+        const message = 'An account with this email already exists. Please login or use a different email.';
+        setError(message);
+        Alert.alert('Registration Failed', message);
+      } else if (err.code === 'auth/invalid-email') {
+        const message = 'Invalid email address. Please check and try again.';
+        setError(message);
+        Alert.alert('Registration Failed', message);
+      } else if (err.code === 'auth/weak-password') {
+        const message = 'Password is too weak. Please use a stronger password.';
+        setError(message);
+        Alert.alert('Registration Failed', message);
+      } else if (err.code === 'auth/operation-not-allowed') {
+        const message = 'Email/password sign up is not enabled. Please contact support.';
+        setError(message);
+        Alert.alert('Registration Failed', message);
+      } else {
+        const message = err.message || 'Registration failed. Please try again.';
+        setError(message);
+        Alert.alert('Registration Failed', message);
+      }
     } finally {
       setLoading(false);
     }
@@ -223,7 +243,12 @@ export default function SignupScreen({ navigation }: any) {
         onPress={handleGoogleSignIn}
         disabled={googleLoading || !request}
       >
-        <Ionicons name="logo-google" size={24} color="#4285F4" style={styles.googleIcon} />
+        <View style={styles.googleGContainer}>
+          <View style={[styles.gDot, { backgroundColor: '#4285F4' }]} />
+          <View style={[styles.gDot, { backgroundColor: '#EA4335' }]} />
+          <View style={[styles.gDot, { backgroundColor: '#FBBC05' }]} />
+          <View style={[styles.gDot, { backgroundColor: '#34A853' }]} />
+        </View>
         <Text style={styles.googleButtonText}>
           {googleLoading ? 'Signing in...' : 'Sign up with Google'}
         </Text>
@@ -251,6 +276,7 @@ const styles = StyleSheet.create({
   },
   passwordInput: {
     paddingRight: 50,
+    height: 50,
   },
   eyeIcon: {
     position: 'absolute',
@@ -258,6 +284,9 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     justifyContent: 'center',
+    alignItems: 'center',
+    width: 30,
+    paddingBottom: 6,
   },
   linkHighlight: {
     fontWeight: '600',
@@ -295,6 +324,17 @@ const styles = StyleSheet.create({
   },
   googleIcon: {
     marginRight: 10,
+  },
+  googleGContainer: {
+    marginRight: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  gDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 2,
   },
   googleButtonText: {
     color: theme.colors.text,
