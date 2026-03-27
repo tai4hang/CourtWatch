@@ -9,8 +9,10 @@
     "newArchEnabled": false,
     "splash": {
       "image": "./assets/app-logo.png",
-      "resizeMode": "cover",
-      "backgroundColor": "#ffffff"
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff",
+      "width": 1024,
+      "height": 1024
     },
     "assetBundlePatterns": [
       "**/*"
