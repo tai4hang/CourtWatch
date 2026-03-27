@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, Image } fro
 import { Ionicons } from '@expo/vector-icons';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
+import { makeRedirectUri } from 'expo-auth-session';
 import { useAuthStore } from '../store/authStore';
 import { theme, styles as themeStyles } from '../theme';
 import { GoogleAuthProvider, signInWithCredential, signInWithEmailAndPassword, EmailAuthProvider } from 'firebase/auth';
@@ -24,6 +25,10 @@ export default function LoginScreen({ navigation }: any) {
     androidClientId: '542775745789-ad88fc6a51579fb244f294.apps.googleusercontent.com',
     webClientId: '542775745789.apps.googleusercontent.com',
     scopes: ['openid', 'email', 'profile'],
+    // Use Expo Go's redirect URL for proper OAuth flow
+    redirectUri: makeRedirectUri({
+      native: 'com.courtwatch.app://oauth2callback',
+    }),
   });
 
   React.useEffect(() => {
