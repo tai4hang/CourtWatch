@@ -37,6 +37,11 @@ export async function userRoutes(fastify: FastifyInstance) {
     };
   });
 
+  // Get subscription (placeholder - no subscription system yet)
+  fastify.get('/subscription', { preHandler: authenticate }, async (request: FastifyRequest, reply: FastifyReply) => {
+    return { subscription: null };
+  });
+
   // Update current user
   fastify.put('/me', { preHandler: authenticate }, async (request: FastifyRequest, reply: FastifyReply) => {
     const input = updateUserSchema.parse(request.body);
