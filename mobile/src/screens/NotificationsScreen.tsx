@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   listContent: {
-    paddingBottom: 20,
+    paddingBottom: 100,
   },
   card: {
     backgroundColor: theme.colors.surface,
