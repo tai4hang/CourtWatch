@@ -330,9 +330,15 @@ class ApiClient {
     if (USE_MOCK) {
       return { user: MOCK_USER, accessToken: this.mockToken };
     }
-    // Send the Firebase ID token to backend for verification
-    const response = await this.client.post('/auth/firebase', { idToken });
-    return response.data;
+    console.log('API: calling firebaseLogin');
+    try {
+      const response = await this.client.post('/auth/firebase', { idToken });
+      console.log('API: firebaseLogin success, status:', response.status);
+      return response.data;
+    } catch (err: any) {
+      console.log('API firebaseLogin error:', err.message);
+      throw err;
+    }
   }
 
   async firebaseRegister(idToken: string, name: string) {
