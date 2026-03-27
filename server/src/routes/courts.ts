@@ -126,7 +126,13 @@ export async function courtRoutes(fastify: FastifyInstance) {
     // Add lastReported and distance_km for each court
     const courtsWithMeta = await Promise.all(
       courts.map(async (court) => {
-        const reports = await courtReportModel.findByCourtId(court.id, 1);
+        // Validate court has valid id
+        if (!court.id) {
+          console.error('Court missing id:', court);
+          return { ...court, lastReported: null, distance_km: 0 };
+        }
+        
+        const reports = await courtReportModel.findByCourtId(String(court.id), 1);
         const lastReported = reports.length > 0 ? reports[0].created_at : null;
         
         // Calculate distance

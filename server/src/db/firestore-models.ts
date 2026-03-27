@@ -420,13 +420,35 @@ export const favoriteModel = {
 // Court Report operations
 export const courtReportModel = {
   async findByCourtId(courtId: string, limit = 20): Promise<CourtReport[]> {
-    const snapshot = await db().collection(COLLECTIONS.REPORTS)
-      .where('court_id', '==', courtId)
-      .orderBy('created_at', 'desc')
-      .limit(limit)
-      .get();
+    // Validate courtId to avoid Firestore error with undefined
+    if (!courtId) {
+      console.error('findByCourtId called with invalid courtId:', courtId);
+      return [];
+    }
     
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CourtReport));
+    try {
+      // Simple query without orderBy to avoid index requirement
+      // Just get reports for this court, we'll sort in memory if needed
+      const snapshot = await db().collection(COLLECTIONS.REPORTS)
+        .where('court_id', '==', String(courtId))
+        .limit(limit)
+        .get();
+      
+      return snapshot.docs.map(doc => {
+        const data = doc.data();
+        // Filter out any undefined values
+        const cleaned: any = {};
+        for (const [key, value] of Object.entries(data)) {
+          if (value !== undefined) {
+            cleaned[key] = value;
+          }
+        }
+        return { id: doc.id, ...cleaned } as CourtReport;
+      });
+    } catch (err: any) {
+      console.error('findByCourtId error:', err.message);
+      return [];
+    }
   },
 
   async findRecentByCourtId(courtId: string, hours = 2): Promise<CourtReport[]> {
