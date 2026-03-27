@@ -293,7 +293,7 @@ export const courtModel = {
                   Math.sin(dLon/2) * Math.sin(dLon/2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         const distance = R * c;
-        return { ...court, distance_km: distance };
+        return { id: doc.id, ...court, distance_km: distance };
       })
       .filter((c): c is Court & { distance_km: number } => c !== null)
       .sort((a, b) => a.distance_km - b.distance_km);
