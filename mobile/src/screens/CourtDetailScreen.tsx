@@ -177,13 +177,12 @@ export default function CourtDetailScreen() {
       
       // Reload court from backend to get fresh data
       const freshData = await api.getCourt(court.id);
-      console.log('Fresh court data:', JSON.stringify(freshData.court));
       // Map backend status to UI status for display
+      const uiStatus = mapBackendStatusToUI(freshData.court.status);
       const courtWithUIStatus = {
         ...freshData.court,
-        status: mapBackendStatusToUI(freshData.court.status),
+        status: uiStatus,
       };
-      console.log('Setting court with status:', courtWithUIStatus.status);
       setCourt(courtWithUIStatus);
       
       Alert.alert(

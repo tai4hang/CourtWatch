@@ -6,6 +6,7 @@
  */
 
 import { initFirestore, COLLECTIONS } from '../src/db/firestore.js';
+import { v4 as uuidv4 } from 'uuid';
 
 const courts = [
   {
@@ -1945,13 +1946,8 @@ const courts = [
   },
 ];
 
-function generateCourtId(name: string, city: string): string {
-  // Generate a deterministic ID based on name and city
-  const normalized = `${name.toLowerCase().trim()}-${city.toLowerCase().trim()}`
-    .replace(/[^a-z0-9]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
-  return normalized;
+function generateCourtId(): string {
+  return uuidv4();
 }
 
 async function seedCourts() {
@@ -1969,7 +1965,7 @@ async function seedCourts() {
   
   // Now create all courts fresh
   for (const court of courts) {
-    const courtId = generateCourtId(court.name, court.city);
+    const courtId = generateCourtId();
     const docRef = db.collection(COLLECTIONS.COURTS).doc(courtId);
     
     await docRef.set({
