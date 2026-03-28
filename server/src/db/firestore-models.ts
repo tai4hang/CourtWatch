@@ -354,10 +354,19 @@ export const courtModel = {
   },
 
   async updateStatus(courtId: string, status: string): Promise<void> {
-    await db().collection(COLLECTIONS.COURTS).doc(courtId).update({
-      status,
-      updated_at: new Date(),
-    });
+    const docRef = db().collection(COLLECTIONS.COURTS).doc(courtId);
+    const doc = await docRef.get();
+    
+    if (!doc.exists) {
+      throw new Error(`Court ${courtId} not found`);
+    }
+    
+    // Use set with merge to ensure status is always set (not just update)
+    await docRef.set({ status, updated_at: new Date() }, { merge: true });
+    
+    // Verify the update
+    const updated = await docRef.get();
+    console.log('Status after update:', updated.get('status'));
   },
 
   async create(data: Omit<Court, 'id'> & { id?: string }): Promise<Court> {
