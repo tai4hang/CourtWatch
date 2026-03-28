@@ -52,6 +52,7 @@ export interface Court {
   surface: string;
   has_lights: boolean;
   is_free: boolean;
+  status: string | null;
   google_maps_url: string | null;
   notes: string | null;
   created_at: Date;
