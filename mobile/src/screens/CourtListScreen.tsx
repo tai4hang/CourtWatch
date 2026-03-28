@@ -188,9 +188,9 @@ export default function CourtListScreen() {
     return 0;
   });
 
-  // Calculate counts for filter buttons
-  const allCount = allCourts.length;
-  const availableCount = allCourts.filter(c => c.status === 'AVAILABLE').length;
+  // Calculate counts for filter buttons (based on filtered courts after city selection)
+  const allCount = filteredCourts.length;
+  const availableCount = filteredCourts.filter(c => c.status === 'AVAILABLE').length;
   // Nearby shows same count as All when not on Nearby filter (same data)
   const nearbyCount = filter === 'nearby' ? courts.length : allCount;
 
