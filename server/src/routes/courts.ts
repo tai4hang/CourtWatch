@@ -244,7 +244,11 @@ export async function courtRoutes(fastify: FastifyInstance) {
       }
     }
 
-    return { report };
+    // Fetch updated court to return
+    const updatedCourt = await courtModel.findById(input.courtId);
+    logger.info({ updatedStatus: updatedCourt?.status }, 'Court status after update');
+
+    return { report, court: updatedCourt };
   });
 
   // Get user's favorites
