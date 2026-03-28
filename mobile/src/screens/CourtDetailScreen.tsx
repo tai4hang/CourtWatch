@@ -91,6 +91,20 @@ export default function CourtDetailScreen() {
     }
   };
 
+  // Map backend status (AVAILABLE/NOT_AVAILABLE/BUSY) to UI status (green/amber/red)
+  const mapBackendStatusToUI = (status?: string): 'green' | 'amber' | 'red' | undefined => {
+    switch (status) {
+      case 'AVAILABLE':
+        return 'green';
+      case 'NOT_AVAILABLE':
+        return 'amber';
+      case 'BUSY':
+        return 'red';
+      default:
+        return undefined;
+    }
+  };
+
   const getStatusColor = (status?: string) => {
     // Map backend status to UI colors
     switch (status) {
@@ -163,7 +177,14 @@ export default function CourtDetailScreen() {
       
       // Reload court from backend to get fresh data
       const freshData = await api.getCourt(court.id);
-      setCourt(freshData.court);
+      console.log('Fresh court data:', JSON.stringify(freshData.court));
+      // Map backend status to UI status for display
+      const courtWithUIStatus = {
+        ...freshData.court,
+        status: mapBackendStatusToUI(freshData.court.status),
+      };
+      console.log('Setting court with status:', courtWithUIStatus.status);
+      setCourt(courtWithUIStatus);
       
       Alert.alert(
         'Thank You!',
