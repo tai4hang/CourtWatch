@@ -306,4 +306,35 @@ export async function courtRoutes(fastify: FastifyInstance) {
       })),
     };
   });
+
+  // Seed/update courts (authenticated users only)
+  fastify.post('/seed', { preHandler: authenticate }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const courts = request.body as any[];
+    let updated = 0;
+    let created = 0;
+
+    for (const court of courts) {
+      try {
+        // Find by id or by name
+        let existing = court.id ? await courtModel.findById(court.id) : null;
+        if (!existing && court.name) {
+          // Search by name - get all and filter
+          const all = await courtModel.findAll(1, 500);
+          existing = all.find(c => c.name === court.name);
+        }
+        
+        if (existing) {
+          await courtModel.update(existing.id, court);
+          updated++;
+        } else {
+          await courtModel.create(court);
+          created++;
+        }
+      } catch (e) {
+        console.error('Failed to seed court:', court.name, e);
+      }
+    }
+
+    return { success: true, created, updated };
+  });
 }

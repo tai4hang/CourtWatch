@@ -1,10 +1,11 @@
 /**
  * Seed courts data to Firestore
  * Run: npx tsx scripts/seed-courts.ts
+ * 
+ * Deletes all existing courts first, then creates fresh ones.
  */
 
 import { initFirestore, COLLECTIONS } from '../src/db/firestore.js';
-import { v4 as uuidv4 } from 'uuid';
 
 const courts = [
   {
@@ -16,8 +17,8 @@ const courts = [
     hasLights: false,
     hours: "7 AM to Dark",
     status: "CLOSED",
-    latitude: 43.8618,
-    longitude: -79.2552,
+    latitude: 43.8402,
+    longitude: -79.3838,
   },
   {
     name: "Armadale Park",
@@ -28,8 +29,8 @@ const courts = [
     hasLights: true,
     hours: "",
     status: "CLOSED",
-    latitude: 43.8978,
-    longitude: -79.2415,
+    latitude: 43.8408,
+    longitude: -79.2808,
   },
   {
     name: "Bayview Glen Park",
@@ -40,8 +41,8 @@ const courts = [
     hasLights: false,
     hours: "7 AM to Dark",
     status: "CLOSED",
-    latitude: 43.8672,
-    longitude: -79.3672,
+    latitude: 43.8107,
+    longitude: -79.3904,
   },
   {
     name: "Bayview Reservoir",
@@ -52,8 +53,8 @@ const courts = [
     hasLights: false,
     hours: "7 AM to Dark",
     status: "CLOSED",
-    latitude: 43.7915,
-    longitude: -79.3148,
+    latitude: 43.8285,
+    longitude: -79.4033,
   },
   {
     name: "Berzcy Park North",
@@ -64,8 +65,8 @@ const courts = [
     hasLights: false,
     hours: "7 AM to Dark",
     status: "CLOSED",
-    latitude: 43.8056,
-    longitude: -79.3489,
+    latitude: 43.8933,
+    longitude: -79.3069,
   },
   {
     name: "Berzcy Park South",
@@ -76,8 +77,8 @@ const courts = [
     hasLights: false,
     hours: "7 AM to Dark",
     status: "CLOSED",
-    latitude: 43.8023,
-    longitude: -79.3501,
+    latitude: 43.8900,
+    longitude: -79.2966,
   },
   {
     name: "Blowden Davies Park",
@@ -88,8 +89,8 @@ const courts = [
     hasLights: false,
     hours: "7 AM to Dark",
     status: "CLOSED",
-    latitude: 43.7865,
-    longitude: -79.3389,
+    latitude: 43.8906,
+    longitude: -79.2127,
   },
   {
     name: "Boxgrove Community Park",
@@ -100,8 +101,8 @@ const courts = [
     hasLights: false,
     hours: "Saturday and Sunday 12 PM to 8 PM",
     status: "CLOSED",
-    latitude: 43.7734,
-    longitude: -79.3101,
+    latitude: 43.8604,
+    longitude: -79.2248,
   },
   {
     name: "Carlton Park",
@@ -112,8 +113,8 @@ const courts = [
     hasLights: true,
     hours: "Courts 1,2,3 & 4: Tuesdays 12pm - 4pm, Courts 1 & 2: Saturdays 6pm - 10pm",
     status: "CLOSED",
-    latitude: 43.9062,
-    longitude: -79.2856,
+    latitude: 43.8751,
+    longitude: -79.2940,
   },
   {
     name: "Duncan Park",
@@ -124,8 +125,8 @@ const courts = [
     hasLights: true,
     hours: "7 AM to 11 PM",
     status: "CLOSED",
-    latitude: 43.8591,
-    longitude: -79.3412,
+    latitude: 43.8194,
+    longitude: -79.3840,
   },
   {
     name: "Frisby Park",
@@ -136,8 +137,8 @@ const courts = [
     hasLights: false,
     hours: "7 AM to Dark",
     status: "CLOSED",
-    latitude: 43.8123,
-    longitude: -79.3298,
+    latitude: 43.8915,
+    longitude: -79.3750,
   },
   {
     name: "Cornell Community Park",
@@ -148,8 +149,8 @@ const courts = [
     hasLights: true,
     hours: "7 AM to 11 PM",
     status: "CLOSED",
-    latitude: 43.7765,
-    longitude: -79.2987,
+    latitude: 43.8912,
+    longitude: -79.2251,
   },
   {
     name: "German Mills Park",
@@ -160,8 +161,8 @@ const courts = [
     hasLights: true,
     hours: "Courts 1, 2: Fridays 6 PM to 8 PM, Saturdays 2 PM to 4 PM, Sundays 4 PM to 8 PM",
     status: "CLOSED",
-    latitude: 43.8543,
-    longitude: -79.3567,
+    latitude: 43.8180,
+    longitude: -79.3680,
   },
   {
     name: "Grandview Park",
@@ -172,8 +173,8 @@ const courts = [
     hasLights: true,
     hours: "7 AM to 11 PM",
     status: "CLOSED",
-    latitude: 43.8489,
-    longitude: -79.3298,
+    latitude: 43.8021,
+    longitude: -79.4196,
   },
   {
     name: "Henry White Park",
@@ -184,8 +185,8 @@ const courts = [
     hasLights: false,
     hours: "7AM to Dark",
     status: "CLOSED",
-    latitude: 43.7923,
-    longitude: -79.2845,
+    latitude: 43.8789,
+    longitude: -79.3698,
   },
   {
     name: "Highgate Park",
@@ -196,8 +197,8 @@ const courts = [
     hasLights: true,
     hours: "Sundays 9 PM to 11 PM, Mondays 9 PM to 11 PM, Wednesdays 7 AM to 9 AM",
     status: "CLOSED",
-    latitude: 43.8298,
-    longitude: -79.3678,
+    latitude: 43.8285,
+    longitude: -79.3161,
   },
   {
     name: "Johnsview Park",
@@ -208,8 +209,8 @@ const courts = [
     hasLights: true,
     hours: "7 AM to 11 PM",
     status: "CLOSED",
-    latitude: 43.8178,
-    longitude: -79.3578,
+    latitude: 43.8172,
+    longitude: -79.3983,
   },
   {
     name: "Laura & Alf Weaver Park",
@@ -220,8 +221,8 @@ const courts = [
     hasLights: false,
     hours: "7 AM to Dark",
     status: "CLOSED",
-    latitude: 43.8834,
-    longitude: -79.2567,
+    latitude: 43.8984,
+    longitude: -79.2564,
   },
   {
     name: "Morgan Park",
@@ -232,8 +233,8 @@ const courts = [
     hasLights: true,
     hours: "7 AM to 11 PM",
     status: "CLOSED",
-    latitude: 43.8323,
-    longitude: -79.3423,
+    latitude: 43.8817,
+    longitude: -79.2589,
   },
   {
     name: "Pomona Mills Park",
@@ -244,8 +245,8 @@ const courts = [
     hasLights: true,
     hours: "Courts 5, 6: Saturday and Sunday 12 PM to 6 PM",
     status: "CLOSED",
-    latitude: 43.9012,
-    longitude: -79.2678,
+    latitude: 43.8183,
+    longitude: -79.4037,
   },
   {
     name: "Roy Ramer Park",
@@ -268,8 +269,8 @@ const courts = [
     hasLights: true,
     hours: "Courts 4,5 and 6: Saturday & Sunday 3 PM to 7 PM",
     status: "CLOSED",
-    latitude: 43.7623,
-    longitude: -79.2845,
+    latitude: 43.8876,
+    longitude: -79.2455,
   },
   {
     name: "Robinson Park",
@@ -280,8 +281,8 @@ const courts = [
     hasLights: false,
     hours: "7 AM to Dark",
     status: "CLOSED",
-    latitude: 43.8789,
-    longitude: -79.2789,
+    latitude: 43.8738,
+    longitude: -79.2734,
   },
   {
     name: "Schoolhouse Park",
@@ -292,8 +293,8 @@ const courts = [
     hasLights: true,
     hours: "Saturday and Sunday 12 PM to 8 PM",
     status: "CLOSED",
-    latitude: 43.7689,
-    longitude: -79.3156,
+    latitude: 43.8565,
+    longitude: -79.2291,
   },
   {
     name: "South Unionville Park",
@@ -304,8 +305,8 @@ const courts = [
     hasLights: false,
     hours: "7 AM to Dark",
     status: "CLOSED",
-    latitude: 43.8856,
-    longitude: -79.2898,
+    latitude: 43.8547,
+    longitude: -79.2933,
   },
   {
     name: "Toogood Park",
@@ -316,8 +317,8 @@ const courts = [
     hasLights: false,
     hours: "7 AM to Dark",
     status: "CLOSED",
-    latitude: 43.7567,
-    longitude: -79.2934,
+    latitude: 43.8617,
+    longitude: -79.3177,
   },
   {
     name: "Wismer Park",
@@ -328,8 +329,8 @@ const courts = [
     hasLights: false,
     hours: "7 AM to Dark",
     status: "CLOSED",
-    latitude: 43.7923,
-    longitude: -79.3012,
+    latitude: 43.8984,
+    longitude: -79.2765,
   },
   {
     name: "Warden View Park",
@@ -340,8 +341,8 @@ const courts = [
     hasLights: false,
     hours: "7 AM to Dark",
     status: "CLOSED",
-    latitude: 43.7845,
-    longitude: -79.2678,
+    latitude: 43.8500,
+    longitude: -79.3301,
   },
   // Toronto courts
   {
@@ -1944,17 +1945,34 @@ const courts = [
   },
 ];
 
+function generateCourtId(name: string, city: string): string {
+  // Generate a deterministic ID based on name and city
+  const normalized = `${name.toLowerCase().trim()}-${city.toLowerCase().trim()}`
+    .replace(/[^a-z0-9]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  return normalized;
+}
+
 async function seedCourts() {
   console.log('Initializing Firestore...');
   const db = initFirestore();
   
+  // Delete all existing courts first
+  console.log('Deleting existing courts...');
+  const snapshot = await db.collection(COLLECTIONS.COURTS).get();
+  const deletePromises = snapshot.docs.map(doc => doc.ref.delete());
+  await Promise.all(deletePromises);
+  console.log(`Deleted ${snapshot.size} existing courts`);
+  
   console.log(`Seeding ${courts.length} courts...`);
   
-  const batch = db.batch();
-  
+  // Now create all courts fresh
   for (const court of courts) {
-    const docRef = db.collection(COLLECTIONS.COURTS).doc(uuidv4());
-    batch.set(docRef, {
+    const courtId = generateCourtId(court.name, court.city);
+    const docRef = db.collection(COLLECTIONS.COURTS).doc(courtId);
+    
+    await docRef.set({
       ...court,
       courtType: "tennis",
       surface: "hard",
@@ -1964,7 +1982,6 @@ async function seedCourts() {
     });
   }
   
-  await batch.commit();
   console.log(`Successfully seeded ${courts.length} courts to Firestore!`);
 }
 

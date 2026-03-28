@@ -255,37 +255,35 @@ export const courtModel = {
     }
     
     // Simple bounding box query - Firestore doesn't support geo queries natively
+    // Query in two steps to avoid composite index requirement
     const latDelta = radiusKm / 111.0;
     const lngDelta = radiusKm / (111.0 * Math.cos(lat * Math.PI / 180));
     
-    // Use Number() and fallback to 0 to ensure valid values passed to Firestore
     const minLat = Number(lat) - Number(latDelta);
     const maxLat = Number(lat) + Number(latDelta);
     const minLng = Number(lng) - Number(lngDelta);
     const maxLng = Number(lng) + Number(lngDelta);
     
-    console.log('Firestore query bounds:', { minLat, maxLat, minLng, maxLng, isNaN: { minLat: isNaN(minLat), maxLat: isNaN(maxLat), minLng: isNaN(minLng), maxLng: isNaN(maxLng) } });
-    
+    // First filter by latitude range only (no composite index needed)
     const snapshot = await db().collection(COLLECTIONS.COURTS)
       .where('latitude', '>=', minLat)
       .where('latitude', '<=', maxLat)
-      .where('longitude', '>=', minLng)
-      .where('longitude', '<=', maxLng)
-      .limit(limit)
       .get();
     
-    console.log('Firestore query returned', snapshot.size, 'documents');
-    
-    return snapshot.docs
+    // Then filter by longitude in JavaScript
+    const courtsInBounds = snapshot.docs
       .map(doc => {
         const data = doc.data();
-        // Skip documents with undefined coordinates
         if (data.latitude === undefined || data.longitude === undefined) {
+          return null;
+        }
+        // Filter by longitude bounds
+        if (data.longitude < minLng || data.longitude > maxLng) {
           return null;
         }
         const court = data as Court;
         // Calculate actual distance
-        const R = 6371; // Earth's radius in km
+        const R = 6371;
         const dLat = (court.latitude - lat) * Math.PI / 180;
         const dLon = (court.longitude - lng) * Math.PI / 180;
         const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -296,7 +294,10 @@ export const courtModel = {
         return { id: doc.id, ...court, distance_km: distance };
       })
       .filter((c): c is Court & { distance_km: number } => c !== null)
-      .sort((a, b) => a.distance_km - b.distance_km);
+      .sort((a, b) => a.distance_km - b.distance_km)
+      .slice(0, limit);
+    
+    return courtsInBounds;
   },
 
   async search(query: string, limit = 20): Promise<Court[]> {
@@ -355,6 +356,25 @@ export const courtModel = {
     await db().collection(COLLECTIONS.COURTS).doc(courtId).update({
       status,
       updated_at: new Date(),
+    });
+  },
+
+  async create(data: Omit<Court, 'id'> & { id?: string }): Promise<Court> {
+    const id = data.id || uuidv4();
+    const court = {
+      ...data,
+      id,
+      createdAt: data.createdAt || new Date(),
+      updatedAt: new Date(),
+    };
+    await db().collection(COLLECTIONS.COURTS).doc(id).set(court);
+    return court as Court;
+  },
+
+  async update(id: string, data: Partial<Court>): Promise<void> {
+    await db().collection(COLLECTIONS.COURTS).doc(id).update({
+      ...data,
+      updatedAt: new Date(),
     });
   },
 };

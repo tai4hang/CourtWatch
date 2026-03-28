@@ -134,9 +134,10 @@ export default function CourtListScreen() {
       // Only get top 20 nearby courts
       const data = await api.getNearbyCourts(location.latitude, location.longitude, 10, 20);
       let nearbyCourts = data.courts || [];
+      console.log('Nearby API response:', JSON.stringify(nearbyCourts.slice(0, 2)));
       
       // Fallback: calculate distance locally if API didn't provide it
-      if (nearbyCourts.length > 0 && nearbyCourts[0].distance_km === undefined) {
+      if (nearbyCourts.length > 0 && nearbyCourts[0].distance_km == null) {
         nearbyCourts = nearbyCourts.map((court: Court) => ({
           ...court,
           distance_km: calculateDistance(location.latitude, location.longitude, court.latitude, court.longitude)
@@ -181,7 +182,7 @@ export default function CourtListScreen() {
     return matchesSearch && matchesCity;
   }).sort((a, b) => {
     // Sort by distance when nearby filter is active
-    if (filter === 'nearby' && a.distance_km !== undefined && b.distance_km !== undefined) {
+    if (filter === 'nearby' && a.distance_km != null && b.distance_km != null) {
       return a.distance_km - b.distance_km;
     }
     return 0;
@@ -241,7 +242,7 @@ export default function CourtListScreen() {
             <Text style={styles.courtInfoText}>Lights</Text>
           </>
         )}
-        {item.distance_km !== undefined && (
+        {item.distance_km != null && (
           <Text style={styles.distanceText}>{item.distance_km.toFixed(1)} km</Text>
         )}
       </View>
@@ -287,7 +288,7 @@ export default function CourtListScreen() {
             style={[styles.filterButton, filter === 'nearby' && styles.filterButtonActive]} 
             onPress={() => handleFilterChange('nearby')}
           >
-            <Text style={[styles.filterText, filter === 'nearby' && styles.filterTextActive]}>Nearby ({nearbyCount || '-'})</Text>
+            <Text style={[styles.filterText, filter === 'nearby' && styles.filterTextActive]}>Nearby</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.filterButton, filter === 'available' && styles.filterButtonActive]} 
