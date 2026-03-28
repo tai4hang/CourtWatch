@@ -200,16 +200,21 @@ export async function courtRoutes(fastify: FastifyInstance) {
 
   // Report court status (requires auth)
   fastify.post('/report', { preHandler: authenticate }, async (request: FastifyRequest, reply: FastifyReply) => {
+    logger.info({ body: request.body, userId: request.user?.id }, 'Report status endpoint called');
+    
     const input = reportStatusSchema.parse(request.body);
+    logger.info({ courtId: input.courtId, status: input.status }, 'Processing status report');
 
     // Verify court exists
     const court = await courtModel.findById(input.courtId);
     if (!court) {
+      logger.warn({ courtId: input.courtId }, 'Court not found');
       return reply.status(404).send({ error: 'Court not found' });
     }
 
     // Get previous status to check if it changed to AVAILABLE
     const previousStatus = court.status;
+    logger.info({ previousStatus }, 'Previous court status');
 
     const report = await courtReportModel.create({
       courtId: input.courtId,
@@ -222,6 +227,7 @@ export async function courtRoutes(fastify: FastifyInstance) {
     });
 
     // Update court status and timestamp
+    logger.info({ courtId: input.courtId, newStatus: input.status }, 'Updating court status');
     await courtModel.updateStatus(input.courtId, input.status);
 
     trackEvent(AnalyticsEvents.COURT_REPORTED, { 
