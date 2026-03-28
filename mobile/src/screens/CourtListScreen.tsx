@@ -188,8 +188,8 @@ export default function CourtListScreen() {
     return 0;
   });
 
-  // Calculate counts for filter buttons (based on city-filtered courts only, before status filter)
-  const cityFilteredCourts = courts.filter(court => {
+  // Calculate counts for filter buttons - always based on allCourts for consistent counts
+  const cityFilteredCourts = allCourts.filter(court => {
     const matchesSearch = !search || 
       court.name.toLowerCase().includes(search.toLowerCase()) ||
       court.address.toLowerCase().includes(search.toLowerCase());
@@ -199,8 +199,6 @@ export default function CourtListScreen() {
   });
   const allCount = cityFilteredCourts.length;
   const availableCount = cityFilteredCourts.filter(c => c.status === 'AVAILABLE').length;
-  // Nearby shows same count as All when not on Nearby filter (same data)
-  const nearbyCount = filter === 'nearby' ? courts.length : allCount;
 
   const getStatusColor = (status?: string) => {
     // Map backend status to UI colors
