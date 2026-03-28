@@ -220,6 +220,14 @@ export const courtModel = {
       updated_at: new Date(now),
     };
   },
+
+  async updateStatus(courtId: string, status: string): Promise<void> {
+    const now = new Date().toISOString();
+    await run(
+      `UPDATE courts SET status = ?, updated_at = ? WHERE id = ?`,
+      [status, now, courtId]
+    );
+  },
 };
 
 // Favorite Model
