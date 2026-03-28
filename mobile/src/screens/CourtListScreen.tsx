@@ -188,9 +188,17 @@ export default function CourtListScreen() {
     return 0;
   });
 
-  // Calculate counts for filter buttons (based on filtered courts after city selection)
-  const allCount = filteredCourts.length;
-  const availableCount = filteredCourts.filter(c => c.status === 'AVAILABLE').length;
+  // Calculate counts for filter buttons (based on city-filtered courts only, before status filter)
+  const cityFilteredCourts = courts.filter(court => {
+    const matchesSearch = !search || 
+      court.name.toLowerCase().includes(search.toLowerCase()) ||
+      court.address.toLowerCase().includes(search.toLowerCase());
+    const matchesCity = selectedCities.length === 0 || selectedCities.length === cities.length ||
+      (court.city && selectedCities.includes(court.city));
+    return matchesSearch && matchesCity;
+  });
+  const allCount = cityFilteredCourts.length;
+  const availableCount = cityFilteredCourts.filter(c => c.status === 'AVAILABLE').length;
   // Nearby shows same count as All when not on Nearby filter (same data)
   const nearbyCount = filter === 'nearby' ? courts.length : allCount;
 
