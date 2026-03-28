@@ -154,11 +154,17 @@ export default function CourtDetailScreen() {
         'amber': 'NOT_AVAILABLE',
         'red': 'BUSY',
       };
-      await api.reportCourt({
+      const backendStatus = statusMap[newStatus] || newStatus;
+      const result = await api.reportCourt({
         courtId: court.id,
-        status: statusMap[newStatus] || newStatus,
+        status: backendStatus,
       });
-      setCourt({ ...court, status: newStatus as any });
+      console.log('Report result:', result);
+      
+      // Reload court from backend to get fresh data
+      const freshData = await api.getCourt(court.id);
+      setCourt(freshData.court);
+      
       Alert.alert(
         'Thank You!',
         'Status reported. Thanks for your contribution.',
